@@ -1,0 +1,82 @@
+.currency-quotes-section {
+  width: 100%;
+  background: var(--bg-primary);
+  padding: 1rem 0;
+  border-top: 1px solid var(--bg-hover);
+  border-bottom: 1px solid var(--bg-hover);
+  overflow: hidden;
+}
+
+.quotes-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  gap: 1rem;
+  padding: 0 1rem;
+  overflow-x: hidden;
+  scroll-behavior: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.quote-card {
+  background: var(--bg-hover);
+  padding: 1rem;
+  border-radius: 20px;
+  min-width: 160px;
+  flex: 0 0 160px;
+  transition: transform 0.3s ease;
+}
+
+.quote-card:hover {
+  transform: translateY(-5px);
+}
+
+.quotes-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  backdrop-filter: blur(5px);
+}
+
+.quotes-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 1rem;
+  padding: 1rem;
+}
+
+.mobile-quotes-button {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  .quotes-container {
+    display: none;
+  }
+
+  .mobile-quotes-button {
+    display: block;
+    margin: 1rem auto;
+    padding: 0.8rem 2rem;
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+  }
+
+  .quotes-modal .modal-content {
+    width: 95%;
+    margin: 1rem;
+  }
+}

@@ -1,0 +1,12 @@
+.hero-carousel {
+  width: 100%;
+  position: relative;
+  height: 28vh; /* Mobile first */
+  min-height: 210px;
+  overflow: hidden;
+
+  @media (min-width: 768px) {
+    height: 60vh;
+    min-height: 400px;
+  }
+}
