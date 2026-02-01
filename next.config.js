@@ -5,6 +5,20 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  async redirects() {
+    return [
+      {
+        source: '/perfil',
+        destination: '/PerfilUsuario',
+        permanent: false,
+      },
+      {
+        source: '/perfil/:id',
+        destination: '/PerfilUsuario',
+        permanent: false,
+      }
+    ];
+  },
 };
 
 module.exports = nextConfig;
