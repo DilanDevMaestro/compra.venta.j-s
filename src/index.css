@@ -1,0 +1,92 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  --background: #f0ece6;
+  --surface: #f7f2ea;
+  --header: #e9e1d7;
+  --foreground: #1a1a1a;
+  --muted: #6b6b6b;
+  --accent: #111111;
+  --price: #f39c12;
+  --offer: #e74c3c;
+}
+
+.dark {
+  --background: #0d0d0d;
+  --surface: #141414;
+  --header: #101010;
+  --foreground: #f5f5f5;
+  --muted: #b5b5b5;
+  --accent: #ffffff;
+  --price: #f39c12;
+  --offer: #ff4d4d;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  overflow-x: hidden;
+}
+
+.scrollbar-hidden {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+.market-marquee {
+  overflow: hidden;
+}
+
+.market-track {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: max-content;
+  animation: market-marquee 28s linear infinite;
+}
+
+.market-marquee:hover .market-track {
+  animation-play-state: paused;
+}
+
+.market-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: rgba(255, 255, 255, 0.55);
+  color: var(--foreground);
+  white-space: nowrap;
+}
+
+.dark .market-chip {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(20, 20, 20, 0.7);
+}
+
+@keyframes market-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
