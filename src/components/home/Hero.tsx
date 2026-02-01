@@ -11,7 +11,7 @@ export function Hero() {
     ],
     []
   )
-  const [images, setImages] = useState<string[]>(initialImages)
+  const [images] = useState<string[]>(initialImages)
   const [index, setIndex] = useState(0)
 
 
