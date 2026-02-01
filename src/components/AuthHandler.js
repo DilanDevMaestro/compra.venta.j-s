@@ -9,20 +9,25 @@ const AuthHandler = () => {
     const handleAuth = async () => {
       try {
         const searchParams = new URLSearchParams(window.location.search);
+        const tokenParam = searchParams.get('t');
         const code = searchParams.get('code');
-        
-        if (!code) {
-          throw new Error('No authorization code found');
+
+        if (!tokenParam && !code) {
+          throw new Error('No authorization data found');
         }
 
-        // Enviar el código al backend
-        const response = await fetch(`${config.API_URL}/auth/google/callback`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ code })
-        });
+        const response = await fetch(
+          tokenParam
+            ? `${config.API_URL}/auth/verify`
+            : `${config.API_URL}/auth/google/callback`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(tokenParam ? { t: tokenParam } : { code })
+          }
+        );
 
         if (!response.ok) {
           throw new Error('Failed to authenticate');
