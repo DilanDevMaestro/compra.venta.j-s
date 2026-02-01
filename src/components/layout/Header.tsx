@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { SearchBar } from './SearchBar'
+import { loginWithGoogle } from '../../services/auth'
 
 type HeaderProps = {
   isDark: boolean
@@ -7,6 +9,15 @@ type HeaderProps = {
 }
 
 export function Header({ isDark, onToggleTheme }: HeaderProps) {
+  const [user, setUser] = useState<{ name?: string; picture?: string } | null>(null)
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user')
+    if (storedUser) {
+      setUser(JSON.parse(storedUser))
+    }
+  }, [])
+
   return (
     <header className="sticky top-0 z-40 border-b border-black/10 bg-header/90 backdrop-blur dark:border-white/10">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-2">
@@ -29,6 +40,21 @@ export function Header({ isDark, onToggleTheme }: HeaderProps) {
           >
             Publicar
           </Link>
+          {user ? (
+            <Link
+              to="/perfil"
+              className="flex items-center gap-2 rounded-full border border-black/10 bg-surface px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground dark:border-white/10"
+            >
+              <span>Perfil</span>
+            </Link>
+          ) : (
+            <button
+              onClick={loginWithGoogle}
+              className="rounded-full border border-black/10 bg-surface px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground dark:border-white/10"
+            >
+              Google
+            </button>
+          )}
           <button
             onClick={onToggleTheme}
             className="rounded-full border border-black/10 px-2.5 py-1.5 text-[10px] uppercase tracking-widest text-muted dark:border-white/10"

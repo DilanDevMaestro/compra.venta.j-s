@@ -3,6 +3,8 @@ import { HomePage } from './pages/HomePage'
 import { CategoryPage } from './pages/CategoryPage'
 import { PublicarPage } from './pages/PublicarPage'
 import { PublicationDetailPage } from './pages/PublicationDetailPage'
+import { AuthPage } from './pages/AuthPage'
+import { PerfilPage } from './pages/PerfilPage'
 
 function App() {
   return (
@@ -11,6 +13,9 @@ function App() {
       <Route path="/categoria/:categorySlug" element={<CategoryPage />} />
       <Route path="/publicar" element={<PublicarPage />} />
       <Route path="/publicacion/:id" element={<PublicationDetailPage />} />
+      <Route path="/auth" element={<AuthPage />} />
+      <Route path="/auth/google/callback" element={<AuthPage />} />
+      <Route path="/perfil" element={<PerfilPage />} />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
