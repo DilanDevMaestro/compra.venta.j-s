@@ -1,81 +1,65 @@
-import { config } from '../config/config';
+import { config } from '../config/config'
 
-export const loginWithGoogle = () => {
-  window.location.href = `${config.API_URL}/auth/google`;
-};
+export const loginWithGoogle = (): void => {
+  window.location.href = `${config.API_URL}/auth/google`
+}
 
-export const handleAuthCallback = async (token) => {
+// Handle auth callback: verify token with backend and store only user
+export const handleAuthCallback = async (token: string): Promise<boolean> => {
   try {
     const response = await fetch(`${config.API_URL}/auth/verify`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
       body: JSON.stringify({ token })
-    });
-    
-    if (!response.ok) {
-      throw new Error('Error en la verificación');
-    }
-    
-    const data = await response.json();
+    })
+
+    if (!response.ok) return false
+
+    const data = await response.json()
     if (data.user) {
-      localStorage.setItem('user', JSON.stringify(data.user));
-      return true;
-    }
-    return false;
-  } catch (error) {
-    console.error('Error en handleAuthCallback:', error);
-    return false;
-  }
-};
-
-export const fetchUserData = async (token) => {
-  try {
-    console.log('Obteniendo datos del usuario...');
-    const response = await fetch(`${config.API_URL}/auth/user`, {
-      credentials: 'include'
-    });
-    
-    if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`);
+      localStorage.setItem('user', JSON.stringify(data.user))
+      return true
     }
 
-    const userData = await response.json();
-    console.log('Datos de usuario recibidos:', userData);
-    localStorage.setItem('user', JSON.stringify(userData));
-    return userData;
-  } catch (error) {
-    console.error('Error fetching user data:', error);
-    return null;
+    return false
+  } catch (e) {
+    console.error('handleAuthCallback error', e)
+    return false
   }
-};
+}
 
-export const checkAuthStatus = async () => {
+// Fetch user data using cookie-backed auth (no token in header)
+export const fetchUserData = async (): Promise<any | null> => {
   try {
-    const response = await fetch(`${config.API_URL}/auth/user`, {
-      credentials: 'include'
-    });
-    
-    if (!response.ok) {
-      throw new Error('No autenticado');
-    }
-
-    const userData = await response.json();
-    return userData;
-  } catch (error) {
-    console.error('Error al verificar autenticación:', error);
-    return null;
+    const response = await fetch(`${config.API_URL}/auth/user`, { credentials: 'include' })
+    if (!response.ok) return null
+    const userData = await response.json()
+    localStorage.setItem('user', JSON.stringify(userData))
+    return userData
+  } catch (e) {
+    console.error('fetchUserData error', e)
+    return null
   }
-};
+}
 
-export const logout = async () => {
+export const checkAuthStatus = async (): Promise<any | null> => {
   try {
-    await fetch(`${config.API_URL}/auth/logout`, { method: 'POST', credentials: 'include' });
-    localStorage.removeItem('user');
-    window.location.href = '/';
-  } catch (error) {
-    console.error('Error al cerrar sesión:', error);
+    const response = await fetch(`${config.API_URL}/auth/user`, { credentials: 'include' })
+    if (!response.ok) return null
+    return response.json()
+  } catch (e) {
+    console.error('checkAuthStatus error', e)
+    return null
   }
-};
+}
+
+export const logout = async (): Promise<void> => {
+  try {
+    await fetch(`${config.API_URL}/auth/logout`, { method: 'POST', credentials: 'include' })
+    localStorage.removeItem('user')
+    window.location.href = '/'
+  } catch (e) {
+    console.error('logout error', e)
+  }
+}
