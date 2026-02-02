@@ -21,11 +21,19 @@ export default async function handler(req, res) {
     const ua = (req.headers && req.headers['user-agent']) ? String(req.headers['user-agent']).toLowerCase() : ''
     const isCrawler = /facebookexternalhit|facebot|twitterbot|linkedinbot|whatsapp|telegrambot|slackbot|discordbot|applebot|bingbot/i.test(ua)
 
-    // If crawler, return OG HTML so social platforms show preview. For normal browsers, redirect to SPA page.
+    // If not crawler, return the SPA HTML so the router can render /publicacion/:id
     if (!isCrawler) {
-      // Redirect browsers straight to the SPA publication URL
+      const { readFileSync, existsSync } = await import('fs')
+      const { join } = await import('path')
+
+      const distIndex = join(process.cwd(), 'dist', 'index.html')
+      const rootIndex = join(process.cwd(), 'index.html')
+      const indexPath = existsSync(distIndex) ? distIndex : rootIndex
+      const html = readFileSync(indexPath, 'utf-8')
+
+      res.setHeader('Content-Type', 'text/html')
       res.setHeader('Cache-Control', 'public, max-age=120')
-      return res.redirect(302, pageUrl)
+      return res.status(200).send(html)
     }
 
     // Use shared service to build preview HTML for crawlers
