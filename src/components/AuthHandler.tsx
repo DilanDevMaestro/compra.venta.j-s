@@ -22,6 +22,7 @@ export function AuthHandler() {
           tokenParam ? `${config.API_URL}/auth/verify` : `${config.API_URL}/auth/google/callback`,
           {
             method: 'POST',
+            credentials: 'include',
             headers: {
               'Content-Type': 'application/json'
             },
