@@ -10,77 +10,54 @@
     {
       "source": "/publicacion/:id",
       "destination": "/api/preview?id=:id",
-      "has": [
-        { "type": "header", "key": "user-agent", "value": "facebookexternalhit" }
-      ]
+      "has": [ { "type": "header", "key": "user-agent", "value": "facebookexternalhit" } ]
     },
     {
       "source": "/publicacion/:id",
       "destination": "/api/preview?id=:id",
-      "has": [
-        { "type": "header", "key": "user-agent", "value": "facebot" }
-      ]
+      "has": [ { "type": "header", "key": "user-agent", "value": "facebot" } ]
     },
     {
       "source": "/publicacion/:id",
       "destination": "/api/preview?id=:id",
-      "has": [
-        { "type": "header", "key": "user-agent", "value": "twitterbot" }
-      ]
+      "has": [ { "type": "header", "key": "user-agent", "value": "twitterbot" } ]
     },
     {
       "source": "/publicacion/:id",
       "destination": "/api/preview?id=:id",
-      "has": [
-        { "type": "header", "key": "user-agent", "value": "linkedinbot" }
-      ]
+      "has": [ { "type": "header", "key": "user-agent", "value": "linkedinbot" } ]
     },
     {
       "source": "/publicacion/:id",
       "destination": "/api/preview?id=:id",
-      "has": [
-        { "type": "header", "key": "user-agent", "value": "whatsapp" }
-      ]
+      "has": [ { "type": "header", "key": "user-agent", "value": "whatsapp" } ]
     },
     {
       "source": "/publicacion/:id",
       "destination": "/api/preview?id=:id",
-      "has": [
-        { "type": "header", "key": "user-agent", "value": "telegrambot" }
-      ]
+      "has": [ { "type": "header", "key": "user-agent", "value": "telegrambot" } ]
     },
     {
       "source": "/publicacion/:id",
       "destination": "/api/preview?id=:id",
-      "has": [
-        { "type": "header", "key": "user-agent", "value": "slackbot" }
-      ]
+      "has": [ { "type": "header", "key": "user-agent", "value": "slackbot" } ]
     },
     {
       "source": "/publicacion/:id",
       "destination": "/api/preview?id=:id",
-      "has": [
-        { "type": "header", "key": "user-agent", "value": "discordbot" }
-      ]
+      "has": [ { "type": "header", "key": "user-agent", "value": "discordbot" } ]
     },
     {
       "source": "/publicacion/:id",
       "destination": "/api/preview?id=:id",
-      "has": [
-        { "type": "header", "key": "user-agent", "value": "applebot" }
-      ]
+      "has": [ { "type": "header", "key": "user-agent", "value": "applebot" } ]
     },
     {
       "source": "/publicacion/:id",
       "destination": "/api/preview?id=:id",
-      "has": [
-        { "type": "header", "key": "user-agent", "value": "bingbot" }
-      ]
-    }
-  ]
-}
-{
-  "rewrites": [
+      "has": [ { "type": "header", "key": "user-agent", "value": "bingbot" } ]
+    },
+
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
