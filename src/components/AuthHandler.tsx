@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { config } from '../config/config'
+import storage from '../services/storage'
 
 export function AuthHandler() {
   const [error, setError] = useState('')
@@ -33,9 +34,9 @@ export function AuthHandler() {
         }
 
         const data = await response.json()
-        if (data.token && data.user) {
-          localStorage.setItem('token', data.token)
-          localStorage.setItem('user', JSON.stringify(data.user))
+        if (data.user) {
+          // Backend sets httpOnly cookie for token; store only sanitized user
+          storage.setUser(data.user)
           navigate('/perfil', { replace: true })
           return
         }

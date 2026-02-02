@@ -21,6 +21,16 @@ export function ListingSection({
 }: ListingSectionProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null)
 
+  const isDark = (() => {
+    try {
+      const stored = localStorage.getItem('theme')
+      if (stored) return stored === 'dark'
+    } catch (e) {}
+    return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? true
+  })()
+
+  const lightCardBg = { backgroundColor: '#e6ddd0' }
+
   const handleScroll = (direction: 'left' | 'right') => {
     if (!scrollRef.current) return
     const amount = direction === 'left' ? -240 : 240
@@ -54,7 +64,8 @@ export function ListingSection({
               <Link
                 key={item.id}
                 to={`/publicacion/${item.id}`}
-                className="w-[150px] sm:w-[170px] shrink-0 overflow-hidden rounded-xl border border-black/10 bg-surface transition hover:-translate-y-0.5 dark:border-white/10"
+                className="w-[150px] sm:w-[170px] shrink-0 overflow-hidden rounded-xl border transition hover:-translate-y-0.5 dark:border-white/10"
+                style={isDark ? undefined : { ...lightCardBg, borderColor: 'rgba(0,0,0,0.06)' }}
               >
                 <div className="h-20 overflow-hidden">
                   <img
@@ -92,7 +103,8 @@ export function ListingSection({
           <Link
             key={item.id}
             to={`/publicacion/${item.id}`}
-            className="overflow-hidden rounded-xl border border-black/10 bg-surface transition hover:-translate-y-0.5 dark:border-white/10"
+            className="overflow-hidden rounded-xl border transition hover:-translate-y-0.5 dark:border-white/10"
+            style={isDark ? undefined : { ...lightCardBg, borderColor: 'rgba(0,0,0,0.06)' }}
           >
             <div className="h-20 overflow-hidden">
               <img

@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { config } from '../config/config'
+import storage from './storage'
 
 type PublicationImage = {
   url: string
@@ -46,9 +47,7 @@ const fetchConfig: RequestInit = {
 }
 
 const getAuthHeaders = () => {
-  const token = localStorage.getItem('token')
   return {
-    Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json'
   }
 }
@@ -61,27 +60,16 @@ const renewToken = async () => {
       'Content-Type': 'application/json'
     }
   })
-  const data = await response.json()
-  if (data.token) {
-    localStorage.setItem('token', data.token)
-    return data.token
+  if (response.ok) {
+    return true
   }
-  localStorage.removeItem('token')
-  localStorage.removeItem('user')
+  storage.removeToken()
+  storage.removeUser()
   window.location.href = '/login'
   throw new Error('No se pudo renovar el token')
 }
 
-authenticatedRequest.interceptors.request.use(
-  (cfg) => {
-    const token = localStorage.getItem('token')
-    if (token) {
-      cfg.headers.Authorization = `Bearer ${token}`
-    }
-    return cfg
-  },
-  (error) => Promise.reject(error)
-)
+authenticatedRequest.interceptors.request.use((cfg) => cfg, (error) => Promise.reject(error))
 
 authenticatedRequest.interceptors.response.use(
   (response) => response,
@@ -90,23 +78,17 @@ authenticatedRequest.interceptors.response.use(
     if (error.response?.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true
       try {
-        const response = await fetch(`${config.API_URL}/auth/refresh-token`, {
+        const refreshed = await fetch(`${config.API_URL}/auth/refresh-token`, {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${localStorage.getItem('token')}`
-          }
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }
         })
-
-        if (!response.ok) throw new Error('Error renovando token')
-
-        const data = await response.json()
-        localStorage.setItem('token', data.token)
-        originalRequest.headers.Authorization = `Bearer ${data.token}`
+        if (!refreshed.ok) throw new Error('Error renovando token')
+        // Retry the original request; cookies are sent automatically (withCredentials true)
         return authenticatedRequest(originalRequest)
       } catch (err) {
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
+        storage.removeToken()
+        storage.removeUser()
         window.location.href = '/'
         return Promise.reject(err)
       }
@@ -126,14 +108,14 @@ const handleResponse = async (response: Response) => {
       error = await response.text()
     }
 
-    if (response.status === 401 && (error as { error?: string })?.error === 'jwt expired') {
-      const newToken = await renewToken()
-      const retryResponse = await fetch(response.url, {
-        headers: {
-          Authorization: `Bearer ${newToken}`
-        }
-      })
-      return handleResponse(retryResponse)
+    if (response.status === 401) {
+      // Try to renew token via cookie-based refresh
+      try {
+        await renewToken()
+        // Cannot safely retry arbitrary original request here; caller will need to re-run action.
+      } catch (e) {
+        // fallthrough to throw
+      }
     }
 
     throw error
@@ -196,9 +178,7 @@ export const publicationsApi = {
   create: async (formData: FormData) => {
     const response = await fetch(`${config.API_URL}/publications`, {
       method: 'POST',
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem('token')}`
-      },
+      credentials: 'include',
       body: formData
     })
 
@@ -211,10 +191,8 @@ export const publicationsApi = {
   },
 
   getUserPublications: async () => {
-    const token = localStorage.getItem('token')
     const response = await fetch(`${config.API_URL}/publications/mis-publicaciones`, {
       headers: {
-        Authorization: `Bearer ${token}`,
         'Content-Type': 'application/json'
       },
       credentials: 'include'
@@ -223,7 +201,7 @@ export const publicationsApi = {
   },
 
   delete: async (id: string) => {
-    const response = await fetch(`${config.API_URL}/publications/${id}`, {
+      const response = await fetch(`${config.API_URL}/publications/${id}`, {
       method: 'DELETE',
       ...fetchConfig,
       headers: {
@@ -244,6 +222,7 @@ export const publicationsApi = {
 
     const response = await fetch(`${config.API_URL}/publications/${id}`, {
       method: 'PUT',
+      credentials: 'include',
       headers: {
         ...getAuthHeaders(),
         'Content-Type': 'application/json'
@@ -313,6 +292,7 @@ export const publicationsApi = {
   likePublication: async (id: string, isLiked: boolean) => {
     const response = await fetch(`${config.API_URL}/publications/${id}/like`, {
       method: 'POST',
+      credentials: 'include',
       headers: {
         ...getAuthHeaders(),
         'Content-Type': 'application/json'
@@ -345,8 +325,10 @@ export const graphQLApi = {
   query: async (query: string, variables: Record<string, unknown> = {}) => {
     const response = await fetch(`${config.API_URL}/graphql`, {
       method: 'POST',
+      credentials: 'include',
       headers: {
-        ...getAuthHeaders()
+        ...getAuthHeaders(),
+        Accept: 'application/json'
       },
       body: JSON.stringify({ query, variables })
     })
@@ -368,12 +350,12 @@ export const userApi = {
     })
 
     if (response.data?.success) {
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+      const currentUser = storage.getUser() || {}
       const updatedUser = {
         ...currentUser,
         businessProfile: response.data.businessProfile
       }
-      localStorage.setItem('user', JSON.stringify(updatedUser))
+      storage.setUser(updatedUser)
     }
 
     return response.data

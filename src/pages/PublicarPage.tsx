@@ -13,7 +13,23 @@ const estados = [
 ]
 
 export function PublicarPage() {
-  const [isDark, setIsDark] = useState(true)
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem('theme')
+      if (stored) return stored === 'dark'
+    } catch (e) {}
+    return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? true
+  })
+
+  const toggleTheme = () => {
+    setIsDark((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem('theme', next ? 'dark' : 'light')
+      } catch (e) {}
+      return next
+    })
+  }
   const [nombre, setNombre] = useState('')
   const [estado, setEstado] = useState('nuevo')
   const [categoria, setCategoria] = useState('')
@@ -91,7 +107,7 @@ export function PublicarPage() {
   return (
     <div className={isDark ? 'dark' : ''}>
       <div className="min-h-screen bg-background text-foreground flex flex-col">
-        <Header isDark={isDark} onToggleTheme={() => setIsDark((prev) => !prev)} />
+        <Header isDark={isDark} onToggleTheme={toggleTheme} />
         <main className="mx-auto w-full max-w-2xl px-4 pb-12 flex-1">
           <div className="mt-6 rounded-xl border border-card/50 bg-card/60 p-4 shadow-soft">
             <h1 className="text-base font-semibold">Publicar producto o servicio</h1>

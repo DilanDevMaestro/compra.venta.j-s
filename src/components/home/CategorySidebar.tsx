@@ -6,9 +6,21 @@ type CategorySidebarProps = {
 }
 
 export function CategorySidebar({ categories, onSelect }: CategorySidebarProps) {
+  const isDark = (() => {
+    try {
+      const stored = localStorage.getItem('theme')
+      if (stored) return stored === 'dark'
+    } catch (e) {}
+    return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? true
+  })()
+
+  const lightBg = { backgroundColor: '#efe6d9' }
   return (
     <aside className="hidden w-40 shrink-0 lg:block lg:mt-4">
-      <div className="rounded-xl border border-black/10 bg-surface p-2 dark:border-white/10">
+      <div
+        className="rounded-xl border p-2 dark:border-white/10"
+        style={isDark ? undefined : { ...lightBg, borderColor: 'rgba(0,0,0,0.18)' }}
+      >
         <h3 className="text-[10px] font-semibold uppercase tracking-widest text-muted">Categorías</h3>
         <div className="mt-2 max-h-[460px] space-y-1 overflow-auto pr-1 scrollbar-hidden">
           {categories.map((category) => (

@@ -27,7 +27,23 @@ type PublicationDetail = {
 
 export function PublicationDetailPage() {
   const { id } = useParams<{ id: string }>()
-  const [isDark, setIsDark] = useState(true)
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem('theme')
+      if (stored) return stored === 'dark'
+    } catch (e) {}
+    return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? true
+  })
+
+  const toggleTheme = () => {
+    setIsDark((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem('theme', next ? 'dark' : 'light')
+      } catch (e) {}
+      return next
+    })
+  }
   const [loading, setLoading] = useState(false)
   const [publication, setPublication] = useState<PublicationDetail | null>(null)
   const [selectedImage, setSelectedImage] = useState(0)
@@ -98,7 +114,7 @@ export function PublicationDetailPage() {
   return (
     <div className={isDark ? 'dark' : ''}>
       <div className="min-h-screen bg-background text-foreground flex flex-col">
-        <Header isDark={isDark} onToggleTheme={() => setIsDark((prev) => !prev)} />
+        <Header isDark={isDark} onToggleTheme={toggleTheme} />
         <main className="mx-auto w-full max-w-5xl px-4 pb-12 flex-1">
           <button
             onClick={() => navigate(-1)}

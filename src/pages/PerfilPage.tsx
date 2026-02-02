@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Header } from '../components/layout/Header'
 import { Footer } from '../components/layout/Footer'
 import { publicationsApi, userApi } from '../services/api'
+import storage from '../services/storage'
 
 type BusinessProfile = {
   name?: string
@@ -28,7 +29,23 @@ type UserProfile = {
 }
 
 export function PerfilPage() {
-  const [isDark, setIsDark] = useState(true)
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem('theme')
+      if (stored) return stored === 'dark'
+    } catch (e) {}
+    return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? true
+  })
+
+  const toggleTheme = () => {
+    setIsDark((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem('theme', next ? 'dark' : 'light')
+      } catch (e) {}
+      return next
+    })
+  }
   const [user, setUser] = useState<UserProfile | null>(null)
   const [publications, setPublications] = useState<any[]>([])
   const [loading, setLoading] = useState(false)
@@ -80,8 +97,8 @@ export function PerfilPage() {
   }, [publications])
 
   useEffect(() => {
-    const token = localStorage.getItem('token')
-    if (!token && isLocalPreview) {
+    const localUser = storage.getUser()
+    if (isLocalPreview) {
       setUser({
         name: 'Diseño local',
         email: 'local@preview.test',
@@ -138,13 +155,9 @@ export function PerfilPage() {
       return
     }
 
-    if (!token) {
-      return
-    }
-
-    const localUser = localStorage.getItem('user')
+    // If we have a cached user, use it while we attempt to fetch latest profile from server
     if (localUser) {
-      setUser(JSON.parse(localUser))
+      setUser(localUser)
     }
 
     const load = async () => {
@@ -152,7 +165,7 @@ export function PerfilPage() {
       try {
         const profile = await userApi.getProfile()
         if (profile) {
-          localStorage.setItem('user', JSON.stringify(profile))
+          storage.setUser(profile)
           setUser(profile)
           setFormState({
             businessName: profile.businessProfile?.name || '',
@@ -197,7 +210,7 @@ export function PerfilPage() {
       if (response?.success) {
         const updatedProfile = await userApi.getProfile()
         if (updatedProfile) {
-          localStorage.setItem('user', JSON.stringify(updatedProfile))
+          storage.setUser(updatedProfile)
           setUser(updatedProfile)
           setUpdateSuccess(true)
         }
@@ -209,11 +222,52 @@ export function PerfilPage() {
     }
   }
 
-  if (!localStorage.getItem('token') && !isLocalPreview) {
+  
+
+  const handleToggleActive = async (pubId: string, current: boolean) => {
+    try {
+      await publicationsApi.update(pubId, { activo: !current })
+      setPublications((prev) => prev.map((p) => (p._id === pubId ? { ...p, activo: !current } : p)))
+    } catch (err) {
+      console.error('Error toggling active state:', err)
+    }
+  }
+
+  const handleToggleOffer = async (pubId: string, currentDiscount: number | undefined, precio: number) => {
+    try {
+      if (currentDiscount && Number(currentDiscount) > 0) {
+        await publicationsApi.update(pubId, { descuento: 0 })
+        setPublications((prev) => prev.map((p) => (p._id === pubId ? { ...p, descuento: 0 } : p)))
+      } else {
+        // Simple default: apply 10% discount
+        const descuento = 10
+        await publicationsApi.update(pubId, { descuento, precioOriginal: precio })
+        setPublications((prev) => prev.map((p) => (p._id === pubId ? { ...p, descuento, precioOriginal: precio } : p)))
+      }
+    } catch (err) {
+      console.error('Error toggling offer:', err)
+    }
+  }
+
+  const handleDeletePublication = async (pubId: string) => {
+    if (!confirm('¿Estás seguro de eliminar esta publicación?')) return
+    try {
+      await publicationsApi.delete(pubId)
+      setPublications((prev) => prev.filter((p) => p._id !== pubId))
+    } catch (err) {
+      console.error('Error deleting publication:', err)
+    }
+  }
+
+  const handleEditPublication = (pubId: string) => {
+    navigate(`/publicar?edit=${pubId}`)
+  }
+
+  if (!storage.getToken() && !isLocalPreview) {
     return (
       <div className={isDark ? 'dark' : ''}>
         <div className="min-h-screen bg-background text-foreground flex flex-col">
-          <Header isDark={isDark} onToggleTheme={() => setIsDark((prev) => !prev)} />
+          <Header isDark={isDark} onToggleTheme={toggleTheme} />
           <main className="mx-auto w-full max-w-4xl px-4 pb-12 flex-1">
             <div className="mt-8 rounded-2xl border border-card/50 bg-card/60 p-6 text-center text-sm">
               <p className="mb-3 font-semibold">Necesitás iniciar sesión con Google.</p>
@@ -234,7 +288,7 @@ export function PerfilPage() {
   return (
     <div className={isDark ? 'dark' : ''}>
       <div className="min-h-screen bg-background text-foreground flex flex-col">
-        <Header isDark={isDark} onToggleTheme={() => setIsDark((prev) => !prev)} />
+        <Header isDark={isDark} onToggleTheme={toggleTheme} />
         <main className="mx-auto w-full max-w-6xl px-4 pb-12 flex-1">
           <div className="mt-6 overflow-hidden rounded-2xl border border-card/50 bg-card/60 shadow-[0_20px_60px_-40px_rgba(0,0,0,0.6)] dark:border-slate-700/60">
             {isBusinessActive ? (
@@ -563,24 +617,76 @@ export function PerfilPage() {
               ) : publications.length ? (
                 <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
                   {publications.map((pub) => (
-                    <li key={pub._id}>
-                      <Link
-                        to={`/publicacion/${pub._id}`}
-                        style={lightCardStyle}
-                        className="block rounded-2xl border border-card/40 bg-surface/80 p-3 shadow-[0_16px_40px_-26px_rgba(0,0,0,0.45)] transition hover:-translate-y-0.5 dark:border-slate-700/50 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(0,0,0,0.15)_100%)]"
-                      >
-                        <div className="flex items-center justify-between">
-                          <p className="text-[12px] font-semibold">{pub.nombre}</p>
-                          <span className="rounded-full border border-black/10 bg-surface px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-muted dark:border-slate-700/60">
-                            {pub.activo ? 'Activa' : 'Pausada'}
-                          </span>
+                    <li key={pub._id} className="mb-4">
+                      <div>
+                        <Link
+                          to={`/publicacion/${pub._id}`}
+                          style={lightCardStyle}
+                          className="block rounded-2xl border border-card/40 bg-surface/80 p-3 shadow-[0_16px_40px_-26px_rgba(0,0,0,0.45)] transition hover:-translate-y-0.5 dark:border-slate-700/50 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(0,0,0,0.15)_100%)] flex flex-col h-[4.5rem] lg:h-[5.5rem] overflow-hidden min-w-0"
+                        >
+                          <div className="flex items-center justify-between">
+                            <p className="text-[12px] font-semibold line-clamp-2 overflow-hidden">{pub.nombre}</p>
+                            <span className="rounded-full border border-black/10 bg-surface px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-muted dark:border-slate-700/60">
+                              {pub.activo ? 'Activa' : 'Pausada'}
+                            </span>
+                          </div>
+                          <p className="text-[11px] text-muted">${Number(pub.precio || 0).toLocaleString('es-AR')}</p>
+                          <div className="mt-auto flex items-center justify-between text-[10px] text-muted">
+                            <span>{pub.vistas || 0} vistas</span>
+                            <span className="text-foreground">Ver detalles</span>
+                          </div>
+                        </Link>
+
+                        <div className="mt-2 flex items-center justify-center sm:justify-between gap-1 sm:gap-0.5 w-full">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              e.preventDefault()
+                              handleEditPublication(pub._id)
+                            }}
+                            className="shrink whitespace-nowrap rounded-md border border-card/40 bg-background/50 px-2 sm:px-2 py-1 text-[10px] sm:text-[11px] lg:text-[9px] font-semibold text-foreground shadow-sm dark:border-slate-700/60 dark:bg-surface/80"
+                          >
+                            Editar
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              e.preventDefault()
+                              handleToggleOffer(pub._id, pub.descuento, Number(pub.precio || 0))
+                            }}
+                            className="shrink whitespace-nowrap rounded-md border border-card/40 bg-background/50 px-2 sm:px-2 py-1 text-[10px] sm:text-[11px] lg:text-[9px] font-semibold text-foreground shadow-sm dark:border-slate-700/60 dark:bg-surface/80"
+                          >
+                            {pub.descuento && Number(pub.descuento) > 0 ? 'Quitar oferta' : 'Marcar oferta'}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              e.preventDefault()
+                              handleToggleActive(pub._id, !!pub.activo)
+                            }}
+                            className="shrink whitespace-nowrap rounded-md border border-card/40 bg-background/50 px-2 sm:px-2 py-1 text-[10px] sm:text-[11px] lg:text-[9px] font-semibold text-foreground shadow-sm dark:border-slate-700/60 dark:bg-surface/80"
+                          >
+                            {pub.activo ? 'Pausar' : 'Activar'}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              e.preventDefault()
+                              handleDeletePublication(pub._id)
+                            }}
+                            className="shrink whitespace-nowrap rounded-md border border-red-200 bg-red-50 text-red-600 px-2 sm:px-2 py-1 text-[10px] sm:text-[11px] lg:text-[9px] font-semibold shadow-sm"
+                          >
+                            Eliminar
+                          </button>
                         </div>
-                        <p className="text-[11px] text-muted">${Number(pub.precio || 0).toLocaleString('es-AR')}</p>
-                        <div className="mt-2 flex items-center justify-between text-[10px] text-muted">
-                          <span>{pub.vistas || 0} vistas</span>
-                          <span className="text-foreground">Ver detalles</span>
-                        </div>
-                      </Link>
+                      </div>
                     </li>
                   ))}
                 </ul>

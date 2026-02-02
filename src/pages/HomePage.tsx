@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { categories as fallbackCategories } from '../data/categories'
-import { listings as fallbackListings, type Listing } from '../data/listings'
+import type { Listing } from '../data/listings'
 import { publicationsApi } from '../services/api'
 import { config } from '../config/config'
 import { Header } from '../components/layout/Header'
@@ -14,14 +14,26 @@ import { Footer } from '../components/layout/Footer'
 import { categoryToSlug, resolveCategoryKey, resolveCategoryName } from '../utils/categories'
 
 export function HomePage() {
-  const [isDark, setIsDark] = useState(true)
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem('theme')
+      if (stored) return stored === 'dark'
+    } catch (e) {}
+    return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? true
+  })
+
+  const toggleTheme = () => {
+    setIsDark((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem('theme', next ? 'dark' : 'light')
+      } catch (e) {}
+      return next
+    })
+  }
   const [categories, setCategories] = useState(fallbackCategories)
-  const [featured, setFeatured] = useState<Listing[]>(() =>
-    fallbackListings.filter((item) => item.featured)
-  )
-  const [offers, setOffers] = useState<Listing[]>(() =>
-    fallbackListings.filter((item) => item.isOffer)
-  )
+  const [featured, setFeatured] = useState<Listing[]>([])
+  const [offers, setOffers] = useState<Listing[]>([])
   const [showCategories, setShowCategories] = useState(false)
   const navigate = useNavigate()
 
@@ -111,7 +123,7 @@ export function HomePage() {
   return (
     <div className={isDark ? 'dark' : ''}>
       <div className="min-h-screen bg-background text-foreground flex flex-col">
-        <Header isDark={isDark} onToggleTheme={() => setIsDark((prev) => !prev)} />
+        <Header isDark={isDark} onToggleTheme={toggleTheme} />
         <main className="mx-auto w-full max-w-5xl px-4 pb-12 flex-1">
           <Hero />
           <MarketMarquee />
@@ -124,7 +136,8 @@ export function HomePage() {
               <div className="mb-4 lg:hidden">
                 <button
                   onClick={() => setShowCategories(true)}
-                  className="w-full rounded-xl border border-black/10 bg-surface px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-muted dark:border-white/10"
+                  className="w-full rounded-xl border bg-surface px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-muted dark:border-white/10"
+                  style={isDark ? undefined : { borderColor: 'rgba(0,0,0,0.18)' }}
                 >
                   Ver categorías
                 </button>
@@ -148,3 +161,5 @@ export function HomePage() {
     </div>
   )
 }
+
+export default HomePage

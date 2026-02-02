@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { categories as fallbackCategories } from '../data/categories'
-import { listings as fallbackListings, type Listing } from '../data/listings'
+import type { Listing } from '../data/listings'
 import { publicationsApi } from '../services/api'
 import { config } from '../config/config'
 import { CategorySidebar } from '../components/home/CategorySidebar'
@@ -12,9 +12,25 @@ import { Header } from '../components/layout/Header'
 import { categoryToSlug, resolveCategoryKey, resolveCategoryName } from '../utils/categories'
 
 export function DestacadosPage() {
-  const [isDark, setIsDark] = useState(true)
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem('theme')
+      if (stored) return stored === 'dark'
+    } catch (e) {}
+    return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? true
+  })
+
+  const toggleTheme = () => {
+    setIsDark((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem('theme', next ? 'dark' : 'light')
+      } catch (e) {}
+      return next
+    })
+  }
   const [categories, setCategories] = useState(fallbackCategories)
-  const [items, setItems] = useState<Listing[]>(() => fallbackListings.filter((item) => item.featured))
+  const [items, setItems] = useState<Listing[]>([])
   const [loading, setLoading] = useState(false)
   const [showCategories, setShowCategories] = useState(false)
   const navigate = useNavigate()
@@ -75,7 +91,7 @@ export function DestacadosPage() {
       }
     } catch (error) {
       console.error('Error loading featured:', error)
-      setItems(fallbackListings.filter((item) => item.featured))
+      setItems([])
     } finally {
       setLoading(false)
     }
@@ -104,7 +120,7 @@ export function DestacadosPage() {
   return (
     <div className={isDark ? 'dark' : ''}>
       <div className="min-h-screen bg-background text-foreground flex flex-col">
-        <Header isDark={isDark} onToggleTheme={() => setIsDark((prev) => !prev)} />
+        <Header isDark={isDark} onToggleTheme={toggleTheme} />
         <main className="mx-auto w-full max-w-5xl px-4 pb-12 flex-1">
           <div className="mt-4 flex gap-3">
             <CategorySidebar
