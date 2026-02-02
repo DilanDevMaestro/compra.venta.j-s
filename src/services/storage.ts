@@ -4,6 +4,15 @@ type SafeUser = {
   name?: string
   email?: string
   picture?: string
+  locationProfile?: {
+    country?: string
+    countryCode?: string
+    province?: string
+    city?: string
+    postalCode?: string
+    areaCode?: string
+  }
+  locationComplete?: boolean
   businessProfile?: {
     name?: string
     location?: string
@@ -57,6 +66,17 @@ export const storage = {
         name: user?.name,
         email: user?.email,
         picture: user?.picture,
+        locationProfile: user?.locationProfile
+          ? {
+              country: user.locationProfile.country,
+              countryCode: user.locationProfile.countryCode,
+              province: user.locationProfile.province,
+              city: user.locationProfile.city,
+              postalCode: user.locationProfile.postalCode,
+              areaCode: user.locationProfile.areaCode
+            }
+          : undefined,
+        locationComplete: user?.locationComplete,
         businessProfile: user?.businessProfile
           ? {
               name: user.businessProfile.name,
