@@ -68,17 +68,23 @@ export function PublicationDetailPage() {
     const raw = publication?.whatsapp || ''
     const digits = raw.replace(/[^0-9]/g, '')
     if (!digits || !publication?._id) return ''
-    const frontendBase = (config.FRONTEND_URL || '').replace(/\/$/, '')
-    const previewUrl = `${frontendBase}/p/${publication._id}`
-    const text = `Hola, estoy interesado en tu publicación: ${publication.nombre} - ${previewUrl}`
+    const frontendBaseCandidate = (config.FRONTEND_URL || '').replace(/\/$/, '')
+    const frontendBase = frontendBaseCandidate || (typeof window !== 'undefined' ? window.location.origin : '')
+    // Visible link should point to the publicacion route (Vercel will rewrite crawler requests to /api/preview)
+    const previewUrl = `${frontendBase}/publicacion/${publication._id}?preview=1`
+    // sanitize title by removing any URLs that could have been injected or previously appended
+    const safeTitle = String(publication.nombre || '').replace(/https?:\/\/[\w\-./?=&%]+/gi, '').trim()
+    const text = `Hola, estoy interesado en tu publicación: ${safeTitle} - ${previewUrl}`
     return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`
-  }, [publication?.whatsapp])
+  }, [publication])
 
   const telegramShareLink = useMemo(() => {
     if (!publication?._id) return ''
-    const frontendBase = (config.FRONTEND_URL || '').replace(/\/$/, '')
-    const previewUrl = `${frontendBase}/p/${publication._id}`
-    const text = `Hola, estoy interesado en tu publicación: ${publication.nombre}`
+    const frontendBaseCandidate = (config.FRONTEND_URL || '').replace(/\/$/, '')
+    const frontendBase = frontendBaseCandidate || (typeof window !== 'undefined' ? window.location.origin : '')
+    const previewUrl = `${frontendBase}/api/preview?id=${publication._id}`
+    const safeTitle = String(publication.nombre || '').replace(/https?:\/\/[\w\-./?=&%]+/gi, '').trim()
+    const text = `Hola, estoy interesado en tu publicación: ${safeTitle}`
     return `https://t.me/share/url?url=${encodeURIComponent(previewUrl)}&text=${encodeURIComponent(text)}`
   }, [publication])
 
