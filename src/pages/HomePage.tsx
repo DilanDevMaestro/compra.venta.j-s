@@ -8,8 +8,10 @@ import { Header } from '../components/layout/Header'
 import { Hero } from '../components/home/Hero'
 import { MarketMarquee } from '../components/home/MarketMarquee'
 import { CategorySidebar } from '../components/home/CategorySidebar'
+import { LocationSidebar } from '../components/home/LocationSidebar'
 import { CategoryModal } from '../components/home/CategoryModal'
 import { ListingSection } from '../components/home/ListingSection'
+import { LocationSection } from '../components/home/LocationSection'
 import { Footer } from '../components/layout/Footer'
 import { categoryToSlug, resolveCategoryKey, resolveCategoryName } from '../utils/categories'
 
@@ -27,6 +29,8 @@ type RawPublication = {
   vistas?: number
   likes?: number | unknown[] | unknown
 }
+
+type LocationItem = { name: string; count: number; country?: string; province?: string }
 
 export function HomePage() {
   const [isDark, setIsDark] = useState<boolean>(() => {
@@ -56,6 +60,12 @@ export function HomePage() {
   const [timeframe, setTimeframe] = useState<'all' | '12h' | '24h'>('24h')
   const [offers, setOffers] = useState<Listing[]>([])
   const [showCategories, setShowCategories] = useState(false)
+  const [locationLevel, setLocationLevel] = useState<'country' | 'province' | 'city'>('country')
+  const [locationCounts, setLocationCounts] = useState<Record<string, LocationItem[]>>({
+    country: [],
+    province: [],
+    city: []
+  })
   const navigate = useNavigate()
 
   const categoryIndex = useMemo(() => {
@@ -77,10 +87,13 @@ export function HomePage() {
 
   const loadHomeData = useCallback(async () => {
     try {
-      const [recentData, discounted, counts] = await Promise.all([
+      const [recentData, discounted, counts, countryCounts, provinceCounts, cityCounts] = await Promise.all([
         publicationsApi.getRecent(),
         publicationsApi.getDiscounted(),
-        publicationsApi.getCategoryCounts()
+        publicationsApi.getCategoryCounts(),
+        publicationsApi.getLocationCounts('country', 12),
+        publicationsApi.getLocationCounts('province', 12),
+        publicationsApi.getLocationCounts('city', 12)
       ])
 
       if (recentData) {
@@ -117,6 +130,25 @@ export function HomePage() {
           }))
 
         setCategories([...next, ...extras])
+      }
+
+      if (countryCounts?.items) {
+        setLocationCounts((prev) => ({
+          ...prev,
+          country: countryCounts.items
+        }))
+      }
+      if (provinceCounts?.items) {
+        setLocationCounts((prev) => ({
+          ...prev,
+          province: provinceCounts.items
+        }))
+      }
+      if (cityCounts?.items) {
+        setLocationCounts((prev) => ({
+          ...prev,
+          city: cityCounts.items
+        }))
       }
     } catch (error) {
       console.error('Error loading home data:', error)
@@ -202,10 +234,42 @@ export function HomePage() {
           <Hero />
           <MarketMarquee />
           <div className="mt-4 flex gap-3">
-            <CategorySidebar
-              categories={categories}
-              onSelect={(category) => handleCategorySelect(category.name)}
-            />
+            <div className="flex flex-col">
+              <CategorySidebar
+                categories={categories}
+                onSelect={(category) => handleCategorySelect(category.name)}
+              />
+              <LocationSidebar
+                title={locationLevel === 'country' ? 'Países' : locationLevel === 'province' ? 'Provincias' : 'Ciudades'}
+                items={locationCounts[locationLevel] || []}
+              />
+              <div className="mt-2 hidden lg:flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setLocationLevel('country')}
+                  className={`whitespace-nowrap text-[10px] px-2 py-0.5 rounded-full border ${locationLevel === 'country' ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted border-card/40'}`}
+                  aria-pressed={locationLevel === 'country'}
+                >
+                  Países
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLocationLevel('province')}
+                  className={`whitespace-nowrap text-[10px] px-2 py-0.5 rounded-full border ${locationLevel === 'province' ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted border-card/40'}`}
+                  aria-pressed={locationLevel === 'province'}
+                >
+                  Provincias
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLocationLevel('city')}
+                  className={`whitespace-nowrap text-[10px] px-2 py-0.5 rounded-full border ${locationLevel === 'city' ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted border-card/40'}`}
+                  aria-pressed={locationLevel === 'city'}
+                >
+                  Ciudades
+                </button>
+              </div>
+            </div>
             <div className="min-w-0 flex-1">
               <div className="mb-4 lg:hidden">
                 <button
@@ -245,6 +309,40 @@ export function HomePage() {
                   </button>
                 </div>
               </div>
+              <div className="lg:hidden">
+                <LocationSection
+                  title={locationLevel === 'country' ? 'Países' : locationLevel === 'province' ? 'Provincias' : 'Ciudades'}
+                  items={locationCounts[locationLevel] || []}
+                  onSelect={() => undefined}
+                />
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setLocationLevel('country')}
+                    className={`whitespace-nowrap text-[11px] px-2 py-0.5 rounded-full border ${locationLevel === 'country' ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted border-card/40'}`}
+                    aria-pressed={locationLevel === 'country'}
+                  >
+                    Países
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLocationLevel('province')}
+                    className={`whitespace-nowrap text-[11px] px-2 py-0.5 rounded-full border ${locationLevel === 'province' ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted border-card/40'}`}
+                    aria-pressed={locationLevel === 'province'}
+                  >
+                    Provincias
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setLocationLevel('city')}
+                    className={`whitespace-nowrap text-[11px] px-2 py-0.5 rounded-full border ${locationLevel === 'city' ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted border-card/40'}`}
+                    aria-pressed={locationLevel === 'city'}
+                  >
+                    Ciudades
+                  </button>
+                </div>
+              </div>
+
               <ListingSection
                 title="Recientes"
                 items={filteredRecent}
