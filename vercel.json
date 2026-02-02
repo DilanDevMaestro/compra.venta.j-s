@@ -1,57 +1,9 @@
 {
   "rewrites": [
-    
     {
       "source": "/publicacion/:id",
-      "destination": "/api/preview?id=:id",
-      "has": [ { "type": "header", "key": "user-agent", "value": "facebookexternalhit" } ]
+      "destination": "/api/preview?id=:id"
     },
-    {
-      "source": "/publicacion/:id",
-      "destination": "/api/preview?id=:id",
-      "has": [ { "type": "header", "key": "user-agent", "value": "facebot" } ]
-    },
-    {
-      "source": "/publicacion/:id",
-      "destination": "/api/preview?id=:id",
-      "has": [ { "type": "header", "key": "user-agent", "value": "twitterbot" } ]
-    },
-    {
-      "source": "/publicacion/:id",
-      "destination": "/api/preview?id=:id",
-      "has": [ { "type": "header", "key": "user-agent", "value": "linkedinbot" } ]
-    },
-    {
-      "source": "/publicacion/:id",
-      "destination": "/api/preview?id=:id",
-      "has": [ { "type": "header", "key": "user-agent", "value": "whatsapp" } ]
-    },
-    {
-      "source": "/publicacion/:id",
-      "destination": "/api/preview?id=:id",
-      "has": [ { "type": "header", "key": "user-agent", "value": "telegrambot" } ]
-    },
-    {
-      "source": "/publicacion/:id",
-      "destination": "/api/preview?id=:id",
-      "has": [ { "type": "header", "key": "user-agent", "value": "slackbot" } ]
-    },
-    {
-      "source": "/publicacion/:id",
-      "destination": "/api/preview?id=:id",
-      "has": [ { "type": "header", "key": "user-agent", "value": "discordbot" } ]
-    },
-    {
-      "source": "/publicacion/:id",
-      "destination": "/api/preview?id=:id",
-      "has": [ { "type": "header", "key": "user-agent", "value": "applebot" } ]
-    },
-    {
-      "source": "/publicacion/:id",
-      "destination": "/api/preview?id=:id",
-      "has": [ { "type": "header", "key": "user-agent", "value": "bingbot" } ]
-    },
-
     { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
