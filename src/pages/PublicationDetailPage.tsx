@@ -67,15 +67,18 @@ export function PublicationDetailPage() {
   const whatsappLink = useMemo(() => {
     const raw = publication?.whatsapp || ''
     const digits = raw.replace(/[^0-9]/g, '')
-    if (!digits) return ''
-    return `https://wa.me/${digits}`
+    if (!digits || !publication?._id) return ''
+    const frontendBase = (config.FRONTEND_URL || '').replace(/\/$/, '')
+    const previewUrl = `${frontendBase}/p/${publication._id}`
+    const text = `Hola, estoy interesado en tu publicación: ${publication.nombre} - ${previewUrl}`
+    return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`
   }, [publication?.whatsapp])
 
   const telegramShareLink = useMemo(() => {
     if (!publication?._id) return ''
-    const backendBase = (config.API_URL || '').replace(/\/$/, '')
-    const previewUrl = `${backendBase}/p/${publication._id}`
-    const text = `Hola, estoy interesado en tu publicación: ${publication.nombre} - ${previewUrl}`
+    const frontendBase = (config.FRONTEND_URL || '').replace(/\/$/, '')
+    const previewUrl = `${frontendBase}/p/${publication._id}`
+    const text = `Hola, estoy interesado en tu publicación: ${publication.nombre}`
     return `https://t.me/share/url?url=${encodeURIComponent(previewUrl)}&text=${encodeURIComponent(text)}`
   }, [publication])
 
