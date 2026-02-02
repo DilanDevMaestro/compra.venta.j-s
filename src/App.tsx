@@ -8,6 +8,7 @@ import { AuthPage } from './pages/AuthPage'
 import { PerfilPage } from './pages/PerfilPage'
 import { DestacadosPage } from './pages/DestacadosPage'
 import { OfertasPage } from './pages/OfertasPage'
+import { LocationRequiredModal } from './components/profile/LocationRequiredModal'
 
 function App() {
   useEffect(() => {
@@ -31,18 +32,21 @@ function App() {
   }, [])
 
   return (
-    <Routes>
-      <Route path="/" element={<HomePage />} />
-      <Route path="/categoria/:categorySlug" element={<CategoryPage />} />
-      <Route path="/publicar" element={<PublicarPage />} />
-      <Route path="/publicacion/:id" element={<PublicationDetailPage />} />
-      <Route path="/destacados" element={<DestacadosPage />} />
-      <Route path="/ofertas" element={<OfertasPage />} />
-      <Route path="/auth" element={<AuthPage />} />
-      <Route path="/auth/google/callback" element={<AuthPage />} />
-      <Route path="/perfil" element={<PerfilPage />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      <LocationRequiredModal />
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/categoria/:categorySlug" element={<CategoryPage />} />
+        <Route path="/publicar" element={<PublicarPage />} />
+        <Route path="/publicacion/:id" element={<PublicationDetailPage />} />
+        <Route path="/destacados" element={<DestacadosPage />} />
+        <Route path="/ofertas" element={<OfertasPage />} />
+        <Route path="/auth" element={<AuthPage />} />
+        <Route path="/auth/google/callback" element={<AuthPage />} />
+        <Route path="/perfil" element={<PerfilPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   )
 }
 
