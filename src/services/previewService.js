@@ -29,8 +29,11 @@ export function buildPreviewHtml(pub, frontend, backend) {
   <meta name="twitter:description" content="${description}" />
   <meta name="twitter:image" content="${image}" />
   <link rel="canonical" href="${pageUrl}" />
-  <meta http-equiv="refresh" content="0;url=${pageUrl}" />
-  <script>window.location.replace('${pageUrl}')</script>
+  <script>
+    if (typeof window !== 'undefined') {
+      window.location.replace('${pageUrl}')
+    }
+  </script>
 </head>
 <body>
   <p>Redirigiendo a la publicación...</p>
