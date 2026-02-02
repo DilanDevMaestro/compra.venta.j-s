@@ -263,27 +263,8 @@ export function PerfilPage() {
     navigate(`/publicar?edit=${pubId}`)
   }
 
-  if (!storage.getToken() && !isLocalPreview) {
-    return (
-      <div className={isDark ? 'dark' : ''}>
-        <div className="min-h-screen bg-background text-foreground flex flex-col">
-          <Header isDark={isDark} onToggleTheme={toggleTheme} />
-          <main className="mx-auto w-full max-w-4xl px-4 pb-12 flex-1">
-            <div className="mt-8 rounded-2xl border border-card/50 bg-card/60 p-6 text-center text-sm">
-              <p className="mb-3 font-semibold">Necesitás iniciar sesión con Google.</p>
-              <button
-                onClick={() => navigate('/')}
-                className="rounded-full bg-foreground px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-background"
-              >
-                Volver al inicio
-              </button>
-            </div>
-          </main>
-          <Footer />
-        </div>
-      </div>
-    )
-  }
+  // Do not block render based on stored token when using httpOnly cookies.
+  // Attempt to load profile via cookie-backed API call instead (handled in useEffect).
 
   return (
     <div className={isDark ? 'dark' : ''}>
