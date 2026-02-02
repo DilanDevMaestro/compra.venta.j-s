@@ -5,6 +5,7 @@ import { Header } from '../components/layout/Header'
 import { Footer } from '../components/layout/Footer'
 import FullscreenImageModal from '../components/FullscreenImageModal'
 import { buildSrcSet, buildSrc } from '../utils/image'
+import { config } from '../config/config'
 
 const fallbackImage =
   'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1200&auto=format&fit=crop'
@@ -69,6 +70,14 @@ export function PublicationDetailPage() {
     if (!digits) return ''
     return `https://wa.me/${digits}`
   }, [publication?.whatsapp])
+
+  const telegramShareLink = useMemo(() => {
+    if (!publication?._id) return ''
+    const backendBase = (config.API_URL || '').replace(/\/$/, '')
+    const previewUrl = `${backendBase}/p/${publication._id}`
+    const text = `Hola, estoy interesado en tu publicación: ${publication.nombre} - ${previewUrl}`
+    return `https://t.me/share/url?url=${encodeURIComponent(previewUrl)}&text=${encodeURIComponent(text)}`
+  }, [publication])
 
   useEffect(() => {
     if (!id) return
@@ -244,16 +253,29 @@ export function PublicationDetailPage() {
                       ) : null}
                     </div>
                   </div>
-                  {whatsappLink ? (
-                    <a
-                      href={whatsappLink}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="mt-3 inline-flex w-full items-center justify-center rounded-full bg-foreground px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-background"
-                    >
-                      Contactar por WhatsApp
-                    </a>
-                  ) : null}
+                  <div className="mt-3 grid grid-cols-2 gap-2">
+                    {whatsappLink ? (
+                      <a
+                        href={whatsappLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex w-full items-center justify-center rounded-full bg-foreground px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-background"
+                      >
+                        Contactar por WhatsApp
+                      </a>
+                    ) : null}
+
+                    {telegramShareLink ? (
+                      <a
+                        href={telegramShareLink}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex w-full items-center justify-center rounded-full border border-card/40 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground"
+                      >
+                        Compartir por Telegram
+                      </a>
+                    ) : null}
+                  </div>
                 </div>
 
                 <div className="rounded-2xl border border-card/50 bg-[linear-gradient(180deg,rgba(0,0,0,0.12)_0%,rgba(0,0,0,0.06)_35%,rgba(0,0,0,0)_100%)] p-4 text-[11px] text-muted shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(0,0,0,0.2)_100%)]">
