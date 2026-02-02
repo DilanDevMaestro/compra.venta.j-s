@@ -6,7 +6,7 @@ export function buildPreviewHtml(pub, frontend) {
     : `${(frontend || '').replace(/\/$/, '')}/static/default-product.jpg`
 
   // Serve image through frontend proxy so crawlers request image under frontend domain
-  const image = `${(frontend || '').replace(/\/$/, '')}/api/image?url=${encodeURIComponent(originalImage)}&w=1200&fmt=jpeg`
+  const image = `${(frontend || '').replace(/\/$/, '')}/api/image?url=${encodeURIComponent(originalImage)}&w=1200&fmt=jpeg&v=${encodeURIComponent(id)}`
   const id = pub && (pub._id || pub.id) ? (pub._id || pub.id) : ''
   const pageUrl = `${(frontend || '').replace(/\/$/, '')}/publicacion/${id}`
 
@@ -19,6 +19,10 @@ export function buildPreviewHtml(pub, frontend) {
   <meta property="og:title" content="${title}" />
   <meta property="og:description" content="${description}" />
   <meta property="og:image" content="${image}" />
+  <meta property="og:image:secure_url" content="${image}" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="${title}" />
   <meta property="og:url" content="${pageUrl}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${title}" />
