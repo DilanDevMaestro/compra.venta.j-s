@@ -10,7 +10,9 @@ export function CategorySidebar({ categories, onSelect }: CategorySidebarProps) 
     try {
       const stored = localStorage.getItem('theme')
       if (stored) return stored === 'dark'
-    } catch (e) {}
+    } catch {
+      /* ignored */
+    }
     return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? true
   })()
 

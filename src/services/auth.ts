@@ -30,7 +30,7 @@ export const handleAuthCallback = async (token: string): Promise<boolean> => {
 }
 
 // Fetch user data using cookie-backed auth (no token in header)
-export const fetchUserData = async (): Promise<any | null> => {
+export const fetchUserData = async (): Promise<Record<string, unknown> | null> => {
   try {
     const response = await fetch(`${config.API_URL}/auth/user`, { credentials: 'include' })
     if (!response.ok) return null
@@ -43,7 +43,7 @@ export const fetchUserData = async (): Promise<any | null> => {
   }
 }
 
-export const checkAuthStatus = async (): Promise<any | null> => {
+export const checkAuthStatus = async (): Promise<Record<string, unknown> | null> => {
   try {
     const response = await fetch(`${config.API_URL}/auth/user`, { credentials: 'include' })
     if (!response.ok) return null

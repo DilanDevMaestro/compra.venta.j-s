@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import { categories } from '../data/categories'
 import { CategoryModal } from '../components/home/CategoryModal'
@@ -18,7 +19,9 @@ export function PublicarPage() {
     try {
       const stored = localStorage.getItem('theme')
       if (stored) return stored === 'dark'
-    } catch (e) {}
+    } catch {
+      // ignore localStorage read errors
+    }
     return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? false
   })
 
@@ -27,7 +30,9 @@ export function PublicarPage() {
       const next = !prev
       try {
         localStorage.setItem('theme', next ? 'dark' : 'light')
-      } catch (e) {}
+      } catch {
+        // ignore localStorage write errors
+      }
       return next
     })
   }
@@ -37,13 +42,19 @@ export function PublicarPage() {
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [subcategoria, setSubcategoria] = useState('')
   const [precio, setPrecio] = useState('')
+  const [precioOriginal, setPrecioOriginal] = useState('')
+  const [descuento, setDescuento] = useState('')
   const [descripcion, setDescripcion] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
   const [imagenes, setImagenes] = useState<File[]>([])
+  type ImageLike = { url?: string; publicId?: string; _id?: string }
+  const [existingImages, setExistingImages] = useState<ImageLike[]>([])
+  const [isEditMode, setIsEditMode] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const navigate = useNavigate()
+  const location = useLocation()
 
   const selectedCategory = useMemo(() => {
     if (!categoria) return undefined
@@ -68,12 +79,53 @@ export function PublicarPage() {
     if (!nombre.trim()) return 'Ingresá un título.'
     if (!categoria) return 'Seleccioná una categoría.'
     if (needsSubcategory && !subcategoria) return 'Seleccioná una subcategoría.'
+    // allow existing images to satisfy image requirement when editing
+    if ((!imagenes || imagenes.length === 0) && (!existingImages || existingImages.length === 0)) return 'Subí al menos una imagen.'
     if (!precio || Number(precio) <= 0) return 'Ingresá un precio válido.'
     if (!descripcion.trim()) return 'Agregá una descripción.'
     if (!whatsapp.trim()) return 'Ingresá un número de WhatsApp.'
-    if (imagenes.length === 0) return 'Subí al menos una imagen.'
     return ''
   }
+
+  // load edit mode if query param present
+  useEffect(() => {
+    const params = new URLSearchParams(location.search)
+    const editId = params.get('edit')
+    if (!editId) return
+    setIsEditMode(editId)
+    ;(async () => {
+      try {
+        const pub = (await publicationsApi.getById(editId)) as Record<string, unknown>
+        if (pub) {
+          type ApiPublication = {
+            nombre?: string
+            estado?: string
+            categoria?: string
+            subcategoria?: string
+            precio?: string | number
+            precioOriginal?: string | number
+            descuento?: string | number
+            descripcion?: string
+            whatsapp?: string
+            imagenes?: ImageLike[]
+          }
+          const pubTyped = pub as ApiPublication
+          setNombre(String(pubTyped.nombre || ''))
+          setEstado(String(pubTyped.estado || 'nuevo'))
+          setCategoria(String(pubTyped.categoria || ''))
+          setSubcategoria(String(pubTyped.subcategoria || ''))
+          setPrecio(String(pubTyped.precio || ''))
+          setPrecioOriginal(String(pubTyped.precioOriginal || ''))
+          setDescuento(String(pubTyped.descuento || ''))
+          setDescripcion(String(pubTyped.descripcion || ''))
+          setWhatsapp(String(pubTyped.whatsapp || ''))
+          setExistingImages((pubTyped.imagenes || []) as ImageLike[])
+        }
+      } catch (err: unknown) {
+        console.error('Error loading publication for edit:', err)
+      }
+    })()
+  }, [location.search])
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
@@ -96,15 +148,41 @@ export function PublicarPage() {
         formData.append('subcategoria', subcategoria)
       }
       formData.append('precio', precio)
+      if (precioOriginal) formData.append('precioOriginal', precioOriginal)
+      if (descuento) formData.append('descuento', descuento)
       formData.append('descripcion', descripcion)
       formData.append('whatsapp', whatsapp)
       imagenes.forEach((file) => formData.append('imagenes', file))
 
-      await publicationsApi.create(formData)
-      setSuccess('Publicación creada correctamente.')
-      navigate(`/categoria/${categoryToSlug(categoria)}`)
-    } catch (err: any) {
-      setError(err?.message || 'No se pudo crear la publicación.')
+      if (isEditMode) {
+        // send JSON update when editing (no new images)
+        const updateData: Record<string, unknown> = {
+          nombre,
+          estado,
+          categoria,
+          subcategoria,
+          precio: Number(precio),
+          descripcion,
+          whatsapp
+        }
+        if (precioOriginal) updateData.precioOriginal = Number(precioOriginal)
+        if (descuento) updateData.descuento = Number(descuento)
+        await publicationsApi.update(isEditMode, updateData)
+        setSuccess('Publicación actualizada correctamente.')
+        navigate(`/publicacion/${isEditMode}`)
+      } else {
+        await publicationsApi.create(formData)
+        setSuccess('Publicación creada correctamente.')
+        navigate(`/categoria/${categoryToSlug(categoria)}`)
+      }
+    } catch (err: unknown) {
+      let message = 'No se pudo crear la publicación.'
+      if (err && typeof err === 'object' && 'message' in err) {
+        message = (err as { message?: string }).message || message
+      } else if (typeof err === 'string') {
+        message = err
+      }
+      setError(message)
     } finally {
       setSubmitting(false)
     }
@@ -210,6 +288,37 @@ export function PublicarPage() {
                     />
                   </label>
                 </div>
+
+                {(isEditMode || Number(descuento) > 0) && (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <label className="text-[12px] font-semibold">
+                      Precio original
+                      <input
+                        value={precioOriginal}
+                        onChange={(e) => setPrecioOriginal(e.target.value)}
+                        className="mt-1.5 w-full rounded-lg border border-card/60 bg-background px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-accent/40 no-spinner"
+                        placeholder="Ej: 150000"
+                        type="number"
+                        min="0"
+                        step="1"
+                      />
+                    </label>
+
+                    <label className="text-[12px] font-semibold">
+                      Descuento (%)
+                      <input
+                        value={descuento}
+                        onChange={(e) => setDescuento(e.target.value)}
+                        className="mt-1.5 w-full rounded-lg border border-card/60 bg-background px-3 py-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-accent/40 no-spinner"
+                        placeholder="Ej: 10"
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                      />
+                    </label>
+                  </div>
+                )}
 
                 <label className="text-[12px] font-semibold">
                   Descripción

@@ -4,6 +4,7 @@ export type Listing = {
   price: number
   location: string
   imageUrl: string
+  createdAt?: string
   featured?: boolean
   isOffer?: boolean
   subcategory?: string

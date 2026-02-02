@@ -126,3 +126,8 @@ input[type="number"].no-spinner::-webkit-inner-spin-button {
     transform: translate3d(-50%, 0, 0);
   }
 }
+
+/* Override Tailwind utility: make .pl-8 equal 1rem (32px -> 16px) */
+.pl-8 {
+  padding-left: 1rem !important;
+}

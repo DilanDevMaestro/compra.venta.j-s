@@ -25,7 +25,9 @@ export function ListingSection({
     try {
       const stored = localStorage.getItem('theme')
       if (stored) return stored === 'dark'
-    } catch (e) {}
+    } catch {
+      /* ignored */
+    }
     return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? true
   })()
 
@@ -65,7 +67,15 @@ export function ListingSection({
                 key={item.id}
                 to={`/publicacion/${item.id}`}
                 className="w-[150px] sm:w-[170px] shrink-0 overflow-hidden rounded-xl border transition hover:-translate-y-0.5 relative dark:border-slate-700/50 dark:shadow-[0_12px_40px_-24px_rgba(0,0,0,0.72)] dark:hover:shadow-[0_18px_50px_-30px_rgba(0,0,0,0.78)] dark:backdrop-blur-sm dark-gradient-bg"
-                style={isDark ? undefined : { ...lightCardBg, borderColor: 'rgba(0,0,0,0.06)' }}
+                  style={
+                    isDark
+                      ? undefined
+                      : {
+                          ...lightCardBg,
+                          borderColor: 'rgba(0,0,0,0.06)',
+                          boxShadow: 'rgb(0 0 0 / 5%) 0px 8px 18px -8px'
+                        }
+                  }
               >
                 <div className="h-20 overflow-hidden relative">
                   <img
@@ -73,12 +83,17 @@ export function ListingSection({
                     alt={item.title}
                     className="h-full w-full object-cover"
                     loading="lazy"
+                    decoding="async"
                   />
-                  <div className="absolute bottom-0 left-0 right-0 h-1/2 pointer-events-none hidden dark:block dark:bg-[linear-gradient(to top,rgba(0,0,0,0.42)_0%,rgba(0,0,0,0)_70%)]" />
+                    <div className="absolute bottom-0 left-0 right-0 h-1/2 pointer-events-none hidden dark:block dark:bg-[linear-gradient(to top,rgba(0,0,0,0.42)_0%,rgba(0,0,0,0)_70%)]" />
+                    
                 </div>
-                <div className="flex h-[120px] flex-col p-2 bg-transparent dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(0,0,0,0.12)_100%)]">
-                  <p className="line-clamp-2 text-[10px] font-semibold dark:text-white">{item.title}</p>
-                  <p className="mt-1 text-[9px] text-muted">{item.location}</p>
+                <div className="flex h-[120px] flex-col p-2 pl-1 sm:pl-2 bg-transparent dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(0,0,0,0.12)_100%)]">
+                  <p className="line-clamp-2 text-[10px] font-semibold dark:text-white" style={isDark ? undefined : { color: '#000' }}>{item.title}</p>
+                    <p className="mt-1 text-[9px] text-muted">
+                      <span className="font-semibold text-[9px] text-foreground dark:text-white" style={isDark ? undefined : { color: '#111' }}>{item.location}</span>
+                      {item.subcategory ? <span className="text-muted" style={isDark ? undefined : { color: '#444' }}> &middot; {item.subcategory}</span> : null}
+                    </p>
                   <p className={`mt-1 text-[12px] font-bold ${highlight === 'offer' ? 'text-offer' : 'text-price'}`}>
                     ${item.price.toLocaleString('es-AR')}
                   </p>
@@ -105,7 +120,11 @@ export function ListingSection({
             key={item.id}
             to={`/publicacion/${item.id}`}
             className="overflow-hidden rounded-xl border transition hover:-translate-y-0.5 relative dark:border-slate-700/50 dark:shadow-[0_12px_40px_-24px_rgba(0,0,0,0.72)] dark:hover:shadow-[0_18px_50px_-30px_rgba(0,0,0,0.78)] dark:backdrop-blur-sm dark-gradient-bg"
-            style={isDark ? undefined : { ...lightCardBg, borderColor: 'rgba(0,0,0,0.06)' }}
+            style={
+              isDark
+                ? undefined
+                : { ...lightCardBg, borderColor: 'rgba(0,0,0,0.06)', boxShadow: 'rgb(0 0 0 / 5%) 0px 8px 18px -8px' }
+            }
           >
             <div className="h-20 overflow-hidden relative">
               <img
@@ -113,12 +132,16 @@ export function ListingSection({
                 alt={item.title}
                 className="h-full w-full object-cover"
                 loading="lazy"
+                decoding="async"
               />
               <div className="absolute bottom-0 left-0 right-0 h-1/2 pointer-events-none hidden dark:block dark:bg-[linear-gradient(to top,rgba(0,0,0,0.42)_0%,rgba(0,0,0,0)_70%)]" />
             </div>
-            <div className="flex h-[120px] flex-col p-2 bg-transparent dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(0,0,0,0.12)_100%)]">
-              <p className="line-clamp-2 text-[10px] font-semibold dark:text-white">{item.title}</p>
-              <p className="mt-1 text-[9px] text-muted">{item.location}</p>
+            <div className="flex h-[120px] flex-col p-2 pl-1 sm:pl-2 bg-transparent dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(0,0,0,0.12)_100%)]">
+              <p className="line-clamp-2 text-[10px] font-semibold dark:text-white" style={isDark ? undefined : { color: '#000' }}>{item.title}</p>
+              <p className="mt-1 text-[9px] text-muted">
+                <span className="font-semibold text-[9px] text-foreground dark:text-white" style={isDark ? undefined : { color: '#111' }}>{item.location}</span>
+                {item.subcategory ? <span className="text-muted" style={isDark ? undefined : { color: '#444' }}> &middot; {item.subcategory}</span> : null}
+              </p>
               <p className={`mt-1 text-[12px] font-bold ${highlight === 'offer' ? 'text-offer' : 'text-price'}`}>
                 ${item.price.toLocaleString('es-AR')}
               </p>

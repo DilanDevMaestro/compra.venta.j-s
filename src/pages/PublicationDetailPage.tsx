@@ -3,6 +3,8 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { publicationsApi } from '../services/api'
 import { Header } from '../components/layout/Header'
 import { Footer } from '../components/layout/Footer'
+import FullscreenImageModal from '../components/FullscreenImageModal'
+import { buildSrcSet, buildSrc } from '../utils/image'
 
 const fallbackImage =
   'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1200&auto=format&fit=crop'
@@ -31,7 +33,9 @@ export function PublicationDetailPage() {
     try {
       const stored = localStorage.getItem('theme')
       if (stored) return stored === 'dark'
-    } catch (e) {}
+    } catch {
+      /* ignored */
+    }
     return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? false
   })
 
@@ -40,13 +44,16 @@ export function PublicationDetailPage() {
       const next = !prev
       try {
         localStorage.setItem('theme', next ? 'dark' : 'light')
-      } catch (e) {}
+      } catch {
+        /* ignored */
+      }
       return next
     })
   }
   const [loading, setLoading] = useState(false)
   const [publication, setPublication] = useState<PublicationDetail | null>(null)
   const [selectedImage, setSelectedImage] = useState(0)
+  const [showModal, setShowModal] = useState(false)
   const [isLiking, setIsLiking] = useState(false)
   const [likeMessage, setLikeMessage] = useState('')
   const navigate = useNavigate()
@@ -130,9 +137,15 @@ export function PublicationDetailPage() {
               <section className="rounded-2xl border border-card/50 bg-[linear-gradient(180deg,rgba(0,0,0,0.12)_0%,rgba(0,0,0,0.06)_35%,rgba(0,0,0,0)_100%)] p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(0,0,0,0.2)_100%)]">
                 <div className="overflow-hidden rounded-xl border border-card/40 bg-surface dark:border-slate-700/50">
                   <img
-                    src={images[selectedImage] || fallbackImage}
+                    src={buildSrc(images[selectedImage] || fallbackImage, 1024) || (images[selectedImage] || fallbackImage)}
+                    srcSet={buildSrcSet(images[selectedImage])}
+                    sizes="(max-width: 640px) 100vw, 50vw"
                     alt={publication.nombre}
-                    className="h-[260px] w-full object-cover sm:h-[320px]"
+                    className="h-[260px] w-full object-contain sm:h-[320px] cursor-zoom-in"
+                    onClick={() => setShowModal(true)}
+                    loading="eager"
+                    decoding="async"
+                    fetchPriority="high"
                   />
                 </div>
                 {images.length > 1 ? (
@@ -146,11 +159,22 @@ export function PublicationDetailPage() {
                           selectedImage === index ? 'border-primary/70' : 'border-card/40 dark:border-slate-700/50'
                         }`}
                       >
-                        <img src={url} alt="Miniatura" className="h-12 w-full object-cover" />
+                        <img
+                          src={buildSrc(url, 200) || url}
+                          srcSet={buildSrcSet(url)}
+                          alt="Miniatura"
+                          className="h-12 w-full object-cover"
+                          loading="lazy"
+                          decoding="async"
+                        />
                       </button>
                     ))}
                   </div>
                 ) : null}
+
+                {showModal && (
+                  <FullscreenImageModal images={images} initialIndex={selectedImage} onClose={() => setShowModal(false)} />
+                )}
 
                 <div className="mt-4 space-y-3">
                   <div>

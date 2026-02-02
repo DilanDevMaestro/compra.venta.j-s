@@ -11,13 +11,28 @@ import { Header } from '../components/layout/Header'
 import { categoryToSlug, normalizeCategoryKey, resolveCategoryKey, slugToCategoryKey } from '../utils/categories'
 import type { Listing } from '../data/listings'
 
+type RawPublication = {
+  _id?: string
+  nombre?: string
+  precio?: number | string
+  categoria?: string
+  subcategoria?: string
+  // support alternative API shapes
+  subCategory?: string
+  subcategory?: string
+  sub_categoria?: string
+  imagenes?: Array<{ url?: string }>
+}
+
 export function CategoryPage() {
   const { categorySlug } = useParams<{ categorySlug: string }>()
   const [isDark, setIsDark] = useState<boolean>(() => {
     try {
       const stored = localStorage.getItem('theme')
       if (stored) return stored === 'dark'
-    } catch (e) {}
+    } catch {
+      // ignore localStorage errors
+    }
     return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? false
   })
 
@@ -26,7 +41,9 @@ export function CategoryPage() {
       const next = !prev
       try {
         localStorage.setItem('theme', next ? 'dark' : 'light')
-      } catch (e) {}
+      } catch {
+        // ignore localStorage set errors
+      }
       return next
     })
   }
@@ -82,12 +99,12 @@ export function CategoryPage() {
     try {
       const data = await publicationsApi.getByCategory(categorySlug, selectedSubcategory || undefined)
       const list = Array.isArray(data) ? data : data?.publications || []
-      const mapped = list.map((pub: any) => ({
-        id: pub._id,
-        title: pub.nombre,
+      const mapped = list.map((pub: RawPublication) => ({
+        id: String(pub._id ?? ''),
+        title: String(pub.nombre ?? ''),
         price: Number(pub.precio) || 0,
         location: pub.categoria || 'Argentina',
-        subcategory: pub.subcategoria || pub.subCategory || pub.subcategory || pub.sub_categoria || '',
+        subcategory: String(pub.subcategoria || pub.subCategory || pub.subcategory || pub.sub_categoria || ''),
         imageUrl:
           pub.imagenes?.[0]?.url ||
           'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1200&auto=format&fit=crop'

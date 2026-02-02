@@ -45,7 +45,7 @@ export const storage = {
     }
   },
 
-  setUser: (user: any | null) => {
+  setUser: (user: Partial<SafeUser> | null) => {
     try {
       if (!user) {
         localStorage.removeItem(USER_KEY)
@@ -53,11 +53,11 @@ export const storage = {
       }
       // Sanitize user object: only allow a small whitelist
       const safe: SafeUser = {
-        _id: user._id || user.id,
-        name: user.name,
-        email: user.email,
-        picture: user.picture,
-        businessProfile: user.businessProfile
+        _id: user?._id,
+        name: user?.name,
+        email: user?.email,
+        picture: user?.picture,
+        businessProfile: user?.businessProfile
           ? {
               name: user.businessProfile.name,
               location: user.businessProfile.location,

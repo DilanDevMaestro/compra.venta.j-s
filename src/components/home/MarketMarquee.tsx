@@ -1,3 +1,4 @@
+
 import { useEffect, useMemo, useState } from 'react'
 import { currencyApi } from '../../services/api'
 
@@ -5,6 +6,17 @@ type QuoteItem = {
   label: string
   buy: number | string
   sell: number | string
+}
+
+type RawQuote = {
+  nombre?: string
+  casa?: string
+  compra?: number | string
+  buy?: number | string
+  venta?: number | string
+  sell?: number | string
+  ventaCompra?: number | string
+  compraVenta?: number | string
 }
 
 const fallbackQuotes: QuoteItem[] = [
@@ -25,7 +37,7 @@ export function MarketMarquee() {
       try {
         const data = await currencyApi.getQuotes()
         if (Array.isArray(data) && data.length) {
-          const mapped = data.map((quote: any) => ({
+          const mapped = data.map((quote: RawQuote) => ({
             label: quote.nombre || quote.casa || 'Dólar',
             buy: quote.compra ?? quote.buy ?? quote.compraVenta ?? 0,
             sell: quote.venta ?? quote.sell ?? quote.ventaCompra ?? 0

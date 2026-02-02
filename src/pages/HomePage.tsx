@@ -13,12 +13,29 @@ import { ListingSection } from '../components/home/ListingSection'
 import { Footer } from '../components/layout/Footer'
 import { categoryToSlug, resolveCategoryKey, resolveCategoryName } from '../utils/categories'
 
+type RawPublication = {
+  _id?: string
+  nombre?: string
+  precio?: number | string
+  categoria?: string
+  subcategoria?: string
+  imagenes?: Array<{ url?: string }>
+  createdAt?: string
+  precioOriginal?: number | string
+  descuento?: number | string
+  activo?: boolean
+  vistas?: number
+  likes?: number | unknown[] | unknown
+}
+
 export function HomePage() {
   const [isDark, setIsDark] = useState<boolean>(() => {
     try {
       const stored = localStorage.getItem('theme')
       if (stored) return stored === 'dark'
-    } catch (e) {}
+    } catch {
+      // ignore localStorage access errors (e.g., disabled storage)
+    }
     return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? false
   })
 
@@ -27,12 +44,16 @@ export function HomePage() {
       const next = !prev
       try {
         localStorage.setItem('theme', next ? 'dark' : 'light')
-      } catch (e) {}
+      } catch {
+        // ignore localStorage write errors (private browsing, etc.)
+      }
       return next
     })
   }
   const [categories, setCategories] = useState(fallbackCategories)
   const [featured, setFeatured] = useState<Listing[]>([])
+  const [recent, setRecent] = useState<Listing[]>([])
+  const [timeframe, setTimeframe] = useState<'all' | '12h' | '24h'>('24h')
   const [offers, setOffers] = useState<Listing[]>([])
   const [showCategories, setShowCategories] = useState(false)
   const navigate = useNavigate()
@@ -41,14 +62,16 @@ export function HomePage() {
     return new Map(fallbackCategories.map((c) => [resolveCategoryKey(c.name), c]))
   }, [])
 
-  const toListing = useCallback((pub: any, extra?: Partial<Listing>): Listing => ({
-    id: pub._id,
-    title: pub.nombre,
+  const toListing = useCallback((pub: RawPublication, extra?: Partial<Listing>): Listing => ({
+    id: String(pub._id ?? ''),
+    title: String(pub.nombre ?? ''),
     price: Number(pub.precio) || 0,
     location: pub.categoria || 'Argentina',
+    subcategory: pub.subcategoria || undefined,
     imageUrl:
       pub.imagenes?.[0]?.url ||
       'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1200&auto=format&fit=crop',
+    createdAt: pub.createdAt,
     ...extra
   }), [])
 
@@ -60,12 +83,17 @@ export function HomePage() {
         publicationsApi.getCategoryCounts()
       ])
 
-      if (recentData?.featured?.length) {
-        setFeatured(recentData.featured.map((pub: any) => toListing(pub, { featured: true })))
+      if (recentData) {
+        if (recentData?.publications?.length) {
+          setRecent(recentData.publications.map((pub: RawPublication) => toListing(pub)))
+        }
+        if (recentData?.featured?.length) {
+          setFeatured(recentData.featured.map((pub: RawPublication) => toListing(pub, { featured: true })))
+        }
       }
 
       if (Array.isArray(discounted) && discounted.length) {
-        setOffers(discounted.map((pub: any) => toListing(pub, { isOffer: true })))
+        setOffers(discounted.map((pub: RawPublication) => toListing(pub, { isOffer: true })))
       }
 
       if (counts && typeof counts === 'object') {
@@ -96,8 +124,33 @@ export function HomePage() {
   }, [categoryIndex, toListing])
 
   useEffect(() => {
-    loadHomeData()
+    void (async () => {
+      await loadHomeData()
+    })()
   }, [loadHomeData])
+
+  // Refetch recent publications when timeframe changes (or on mount)
+  useEffect(() => {
+    const fetchRecent = async () => {
+      try {
+        const hours = timeframe === '12h' ? 12 : timeframe === '24h' ? 24 : undefined
+        const recentData = await publicationsApi.getRecent(hours)
+        if (recentData) {
+          if (recentData?.publications?.length) {
+            setRecent(recentData.publications.map((pub: RawPublication) => toListing(pub)))
+          } else {
+            setRecent([])
+          }
+          if (recentData?.featured?.length) {
+            setFeatured(recentData.featured.map((pub: RawPublication) => toListing(pub, { featured: true })))
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching recent with timeframe:', error)
+      }
+    }
+    fetchRecent()
+  }, [timeframe, toListing])
 
   useEffect(() => {
     const eventsUrl = `${config.API_URL}/events`
@@ -120,6 +173,27 @@ export function HomePage() {
     navigate(`/categoria/${categoryToSlug(categoryName)}`)
   }
 
+  const [filteredRecent, setFilteredRecent] = useState<Listing[]>([])
+
+  useEffect(() => {
+    if (timeframe === 'all') {
+      // keep async to avoid sync setState-in-effect lint
+      Promise.resolve().then(() => setFilteredRecent(recent))
+      return
+    }
+    const now = Date.now()
+    const hours = timeframe === '12h' ? 12 : 24
+    Promise.resolve().then(() =>
+      setFilteredRecent(
+        recent.filter((r) => {
+          if (!r.createdAt) return false
+          const created = new Date(r.createdAt).getTime()
+          return now - created <= hours * 60 * 60 * 1000
+        })
+      )
+    )
+  }, [recent, timeframe])
+
   return (
     <div className={isDark ? 'dark' : ''}>
       <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -136,12 +210,47 @@ export function HomePage() {
               <div className="mb-4 lg:hidden">
                 <button
                   onClick={() => setShowCategories(true)}
-                  className="w-full rounded-xl border bg-surface px-4 py-3 text-left text-xs font-semibold uppercase tracking-widest text-muted dark:border-white/10"
+                  className="inline-flex w-auto rounded-xl border bg-surface px-3 py-2 text-left text-[12px] font-semibold uppercase tracking-widest text-muted dark:border-white/10"
                   style={isDark ? undefined : { borderColor: 'rgba(0,0,0,0.18)' }}
                 >
                   Ver categorías
                 </button>
               </div>
+              <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <h3 className="text-sm font-semibold">Compra y vende sin vueltas</h3>
+                <div className="flex items-center gap-1 overflow-x-auto flex-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => setTimeframe('all')}
+                    className={`whitespace-nowrap text-[11px] px-2 py-0.5 rounded-full border ${timeframe === 'all' ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted border-card/40'}`}
+                    aria-pressed={timeframe === 'all'}
+                  >
+                    Todas
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTimeframe('12h')}
+                    className={`whitespace-nowrap text-[11px] px-2 py-0.5 rounded-full border ${timeframe === '12h' ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted border-card/40'}`}
+                    aria-pressed={timeframe === '12h'}
+                  >
+                    Últimas 12h
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTimeframe('24h')}
+                    className={`whitespace-nowrap text-[11px] px-2 py-0.5 rounded-full border ${timeframe === '24h' ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted border-card/40'}`}
+                    aria-pressed={timeframe === '24h'}
+                  >
+                    Últimas 24h
+                  </button>
+                </div>
+              </div>
+              <ListingSection
+                title="Recientes"
+                items={filteredRecent}
+                layout="scroll"
+                viewMoreLink="/recientes"
+              />
               <ListingSection title="Destacados" items={featured} layout="scroll" viewMoreLink="/destacados" />
               <ListingSection title="Ofertas" items={offers} highlight="offer" layout="scroll" viewMoreLink="/ofertas" />
             </div>

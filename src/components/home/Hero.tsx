@@ -26,7 +26,7 @@ export function Hero() {
 
   return (
     <section className="mt-4 space-y-8">
-      <div className="relative overflow-hidden rounded-3xl bg-surface shadow-soft">
+      <div className="relative overflow-hidden rounded-2xl bg-surface shadow-soft">
         <div className="aspect-[1920/500] w-full bg-background">
         {images.map((src, i) => (
           <img
@@ -39,8 +39,9 @@ export function Hero() {
             loading="lazy"
           />
         ))}
+        {/* overlay removed per user request */}
         </div>
-        <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-2">
+        <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-2 z-20">
           {images.map((_, i) => (
             <button
               key={i}

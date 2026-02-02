@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { SearchBar } from './SearchBar'
-import { loginWithGoogle } from '../../services/auth'
+import { loginWithGoogle, fetchUserData } from '../../services/auth'
 import storage from '../../services/storage'
 import { config } from '../../config/config'
 
@@ -11,7 +11,13 @@ type HeaderProps = {
 }
 
 export function Header({ isDark, onToggleTheme }: HeaderProps) {
-  const [user, setUser] = useState<{ name?: string; picture?: string } | null>(null)
+  const [user, setUser] = useState<{ name?: string; picture?: string } | null>(() => {
+    try {
+      return (storage.getUser() as { name?: string; picture?: string } | null) ?? null
+    } catch {
+      return null
+    }
+  })
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement | null>(null)
@@ -19,13 +25,50 @@ export function Header({ isDark, onToggleTheme }: HeaderProps) {
   const logoPrimary = '/image/sj-2.png'
   const logoSecondary = '/image/sj-4.png'
 
+  // user is initialized lazily from storage to avoid setState in effect
   useEffect(() => {
-    const storedUser = storage.getUser()
-    if (storedUser) {
-      setUser(storedUser as { name?: string; picture?: string })
+    const handleStorage = (e: StorageEvent) => {
+      if (e.key === 'user') {
+        try {
+          const u = storage.getUser()
+          setUser(u)
+        } catch {
+          setUser(null)
+        }
+      }
     }
+    window.addEventListener('storage', handleStorage)
+    return () => window.removeEventListener('storage', handleStorage)
   }, [])
 
+  useEffect(() => {
+    if (!mobileOpen) return
+    // refresh user from local storage or API when opening mobile menu
+    const local = storage.getUser()
+    if (local) {
+      // schedule setState to avoid synchronous setState inside effect
+      Promise.resolve().then(() => setUser(local))
+      return
+    }
+    void (async () => {
+      try {
+        const data = await fetchUserData()
+        if (data) {
+          const d = data as Record<string, unknown>
+          const safeUser = {
+            _id: typeof d._id === 'string' ? (d._id as string) : undefined,
+            name: typeof d.name === 'string' ? (d.name as string) : undefined,
+            picture: typeof d.picture === 'string' ? (d.picture as string) : undefined,
+            businessProfile: typeof d.businessProfile === 'object' && d.businessProfile !== null ? (d.businessProfile as Record<string, unknown>) : undefined
+          }
+          storage.setUser(safeUser)
+          Promise.resolve().then(() => setUser({ name: safeUser.name, picture: safeUser.picture }))
+        }
+      } catch {
+        // ignore
+      }
+    })()
+  }, [mobileOpen])
   useEffect(() => {
     if (!isMenuOpen) return
     const handleClick = (event: MouseEvent) => {
@@ -217,6 +260,17 @@ export function Header({ isDark, onToggleTheme }: HeaderProps) {
                   Desconectar
                 </button>
               )}
+
+              {user ? (
+                <Link
+                  to="/publicar"
+                  onClick={() => setMobileOpen(false)}
+                  className="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold"
+                  style={{ color: isDark ? 'rgba(255,255,255,0.9)' : '#1a1a1a', backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.6)', border: isDark ? '1px solid rgba(255,255,255,0.04)' : '1px solid rgba(0,0,0,0.06)' }}
+                >
+                  Publicar
+                </Link>
+              ) : null}
 
               <button
                 onClick={() => {

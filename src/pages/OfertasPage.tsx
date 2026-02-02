@@ -11,12 +11,23 @@ import { Footer } from '../components/layout/Footer'
 import { Header } from '../components/layout/Header'
 import { categoryToSlug, resolveCategoryKey, resolveCategoryName } from '../utils/categories'
 
+type RawPublication = {
+  _id?: string
+  nombre?: string
+  precio?: number | string
+  categoria?: string
+  subcategoria?: string
+  imagenes?: Array<{ url?: string }>
+}
+
 export function OfertasPage() {
   const [isDark, setIsDark] = useState<boolean>(() => {
     try {
       const stored = localStorage.getItem('theme')
       if (stored) return stored === 'dark'
-    } catch (e) {}
+    } catch {
+      // ignore localStorage read errors
+    }
     return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? false
   })
 
@@ -25,7 +36,9 @@ export function OfertasPage() {
       const next = !prev
       try {
         localStorage.setItem('theme', next ? 'dark' : 'light')
-      } catch (e) {}
+      } catch {
+        // ignore localStorage write errors
+      }
       return next
     })
   }
@@ -39,9 +52,9 @@ export function OfertasPage() {
     return new Map(fallbackCategories.map((c) => [resolveCategoryKey(c.name), c]))
   }, [])
 
-  const toListing = useCallback((pub: any, extra?: Partial<Listing>): Listing => ({
-    id: pub._id,
-    title: pub.nombre,
+  const toListing = useCallback((pub: RawPublication, extra?: Partial<Listing>): Listing => ({
+    id: String(pub._id ?? ''),
+    title: String(pub.nombre ?? ''),
     price: Number(pub.precio) || 0,
     location: pub.categoria || 'Argentina',
     imageUrl:
@@ -85,7 +98,7 @@ export function OfertasPage() {
     try {
       const discounted = await publicationsApi.getDiscounted()
       if (Array.isArray(discounted) && discounted.length) {
-        setItems(discounted.map((pub: any) => toListing(pub, { isOffer: true })))
+        setItems(discounted.map((pub: RawPublication) => toListing(pub, { isOffer: true })))
       } else {
         setItems([])
       }

@@ -113,8 +113,8 @@ const handleResponse = async (response: Response) => {
       try {
         await renewToken()
         // Cannot safely retry arbitrary original request here; caller will need to re-run action.
-      } catch (e) {
-        // fallthrough to throw
+      } catch {
+        // fallthrough - token renewal failed
       }
     }
 
@@ -125,14 +125,15 @@ const handleResponse = async (response: Response) => {
 }
 
 export const publicationsApi = {
-  getRecent: async () => {
+  getRecent: async (hours?: number) => {
     try {
-      const response = await fetch(`${config.API_URL}/publications/recent`)
+      const suffix = hours ? `?hours=${hours}` : ''
+      const response = await fetch(`${config.API_URL}/publications/recent${suffix}`)
       if (!response.ok) throw new Error('Error fetching publications')
       const data = (await response.json()) as RecentResponse
 
       return {
-        recent: data.publications.map((pub: PublicationDto) => ({
+        publications: data.publications.map((pub: PublicationDto) => ({
           _id: pub._id,
           nombre: pub.nombre,
           precio: pub.precio,
@@ -156,7 +157,7 @@ export const publicationsApi = {
       }
     } catch (error) {
       console.error('Error fetching publications:', error)
-      return { recent: [], featured: [] }
+      return { publications: [], featured: [] }
     }
   },
 
@@ -213,12 +214,10 @@ export const publicationsApi = {
   },
 
   update: async (id: string, data: UpdatePublicationInput) => {
-    const formattedData = {
-      ...data,
-      precio: Number(data.precio) || 0,
-      precioOriginal: Number(data.precioOriginal) || Number(data.precio) || 0,
-      descuento: Number(data.descuento) || 0
-    }
+    const formattedData: Record<string, unknown> = { ...data }
+    if (data.precio !== undefined) formattedData.precio = Number(data.precio)
+    if (data.precioOriginal !== undefined) formattedData.precioOriginal = Number(data.precioOriginal)
+    if (data.descuento !== undefined) formattedData.descuento = Number(data.descuento)
 
     const response = await fetch(`${config.API_URL}/publications/${id}`, {
       method: 'PUT',

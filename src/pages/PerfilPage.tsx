@@ -33,7 +33,9 @@ export function PerfilPage() {
     try {
       const stored = localStorage.getItem('theme')
       if (stored) return stored === 'dark'
-    } catch (e) {}
+    } catch {
+      // ignore localStorage read errors
+    }
     return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? false
   })
 
@@ -42,12 +44,24 @@ export function PerfilPage() {
       const next = !prev
       try {
         localStorage.setItem('theme', next ? 'dark' : 'light')
-      } catch (e) {}
+      } catch {
+        // ignore localStorage write errors
+      }
       return next
     })
   }
   const [user, setUser] = useState<UserProfile | null>(null)
-  const [publications, setPublications] = useState<any[]>([])
+  type PubItem = {
+    _id: string
+    nombre?: string
+    precio?: number
+    vistas?: number
+    likes?: number | unknown[]
+    activo?: boolean
+    imagenes?: Array<{ url?: string }>
+    descuento?: number | string
+  }
+  const [publications, setPublications] = useState<PubItem[]>([])
   const [loading, setLoading] = useState(false)
   const [isBusinessModalOpen, setIsBusinessModalOpen] = useState(false)
   const [isBenefitsOpen, setIsBenefitsOpen] = useState(false)
@@ -75,23 +89,26 @@ export function PerfilPage() {
     : { rating: 0, responseRate: 0, responseTime: '—', followers: 0 }
   const lightSectionStyle = !isDark
     ? {
-        backgroundImage:
-          'linear-gradient(180deg, rgba(210,220,235,0.9) 0%, rgba(235,240,248,0.6) 35%, rgba(255,255,255,0.15) 100%)',
-        backgroundColor: 'rgba(255,255,255,0.65)'
+        // Use global surface color with a very subtle white overlay to match palette
+        backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.6) 35%, rgba(255,255,255,0.4) 100%)',
+        backgroundColor: 'var(--surface)'
       }
     : undefined
   const lightCardStyle = !isDark
     ? {
-        backgroundImage:
-          'linear-gradient(180deg, rgba(205,215,230,0.95) 0%, rgba(235,240,248,0.65) 35%, rgba(255,255,255,0.2) 100%)',
-        backgroundColor: 'rgba(255,255,255,0.7)'
+        backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 35%, rgba(255,255,255,0.5) 100%)',
+        backgroundColor: 'var(--surface)'
       }
     : undefined
 
   const stats = useMemo(() => {
     const totalPublications = publications.length
     const totalViews = publications.reduce((sum, p) => sum + (p.vistas || 0), 0)
-    const totalLikes = publications.reduce((sum, p) => sum + (p.likes?.length || p.likes || 0), 0)
+    const totalLikes = publications.reduce((sum, p) => {
+      if (Array.isArray(p.likes)) return sum + p.likes.length
+      if (typeof p.likes === 'number') return sum + p.likes
+      return sum
+    }, 0)
     const activePublications = publications.filter((p) => p.activo === true).length
     return { totalPublications, totalViews, totalLikes, activePublications }
   }, [publications])
@@ -187,7 +204,7 @@ export function PerfilPage() {
     }
 
     load()
-  }, [])
+  }, [isLocalPreview])
 
   const handleBusinessSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -272,15 +289,34 @@ export function PerfilPage() {
         <Header isDark={isDark} onToggleTheme={toggleTheme} />
         <main className="mx-auto w-full max-w-6xl px-4 pb-12 flex-1">
           <div className="mt-6 overflow-hidden rounded-2xl border border-card/50 bg-card/60 shadow-[0_20px_60px_-40px_rgba(0,0,0,0.6)] dark:border-slate-700/60">
-            {isBusinessActive ? (
-              user?.businessProfile?.banner ? (
-                <img src={user.businessProfile.banner} alt="Banner" className="h-32 w-full object-cover" />
-              ) : (
-                <div className="h-24 bg-surface" />
-              )
-            ) : (
-              <div className="h-16 bg-surface" />
-            )}
+            {/** Banner: usar estilo tipo Hero en perfil. Si es perfil común usar banner por defecto. */}
+            <div className="relative overflow-hidden bg-surface shadow-soft">
+              <div className="aspect-[1920/500] w-full bg-background">
+                {(() => {
+                  const defaultBanner = '/image/home-image-banner/JSBANNER.png'
+                  if (isBusinessActive) {
+                    const src = user?.businessProfile?.banner || defaultBanner
+                    return (
+                      <img
+                        src={src}
+                        alt="Banner"
+                        className="absolute inset-0 h-full w-full object-cover"
+                        loading="lazy"
+                      />
+                    )
+                  }
+                  // perfil común usa banner por defecto
+                  return (
+                    <img
+                      src={defaultBanner}
+                      alt="Banner"
+                      className="absolute inset-0 h-full w-full object-cover"
+                      loading="lazy"
+                    />
+                  )
+                })()}
+              </div>
+            </div>
             <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-16 w-16 overflow-hidden rounded-full border border-card/40 bg-surface dark:border-slate-700/50">
@@ -636,7 +672,7 @@ export function PerfilPage() {
                             onClick={(e) => {
                               e.stopPropagation()
                               e.preventDefault()
-                              handleToggleOffer(pub._id, pub.descuento, Number(pub.precio || 0))
+                              handleToggleOffer(pub._id, Number(pub.descuento || 0), Number(pub.precio || 0))
                             }}
                             className="shrink whitespace-nowrap rounded-md border border-card/40 bg-background/50 px-2 sm:px-2 py-1 text-[10px] sm:text-[11px] lg:text-[9px] font-semibold text-foreground shadow-sm dark:border-slate-700/60 dark:bg-surface/80"
                           >
