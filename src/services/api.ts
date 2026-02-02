@@ -33,6 +33,11 @@ type UpdatePublicationInput = {
 
 type CommentInput = Record<string, unknown>
 
+type LocationCountsResponse = {
+  level: 'country' | 'province' | 'region' | 'city'
+  items: Array<{ name: string; count: number; country?: string; province?: string }>
+}
+
 const authenticatedRequest = axios.create({
   baseURL: config.API_URL,
   withCredentials: true
@@ -261,6 +266,14 @@ export const publicationsApi = {
     return handleResponse(response)
   },
 
+  getLocationCounts: async (level: 'country' | 'province' | 'city' = 'country', limit = 50) => {
+    const params = new URLSearchParams()
+    params.set('level', level)
+    params.set('limit', String(limit))
+    const response = await fetch(`${config.API_URL}/publications/location-counts?${params.toString()}`)
+    return handleResponse(response) as Promise<LocationCountsResponse>
+  },
+
   getCategoryCounts: async () => {
     const response = await fetch(`${config.API_URL}/publications/category-counts`, fetchConfig)
     return handleResponse(response)
@@ -338,6 +351,31 @@ export const graphQLApi = {
 export const userApi = {
   getProfile: async () => {
     const response = await authenticatedRequest.get('/users/profile')
+    return response.data
+  },
+
+  updateLocation: async (data: {
+    country: string
+    countryCode?: string
+    province: string
+    city: string
+    postalCode: string
+    areaCode?: string
+  }) => {
+    const response = await authenticatedRequest.post('/users/update-location', data, {
+      headers: { 'Content-Type': 'application/json' }
+    })
+
+    if (response.data?.success) {
+      const currentUser = storage.getUser() || {}
+      const updatedUser = {
+        ...currentUser,
+        locationProfile: response.data.locationProfile,
+        locationComplete: true
+      }
+      storage.setUser(updatedUser)
+    }
+
     return response.data
   },
 
