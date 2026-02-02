@@ -22,7 +22,26 @@ export default async function handler(req, res) {
 
     // Always return OG HTML so WhatsApp/Telegram reliably pick the product preview.
     // The HTML includes a meta refresh + JS redirect to the SPA page.
-    const { buildPreviewHtml } = await import('../src/services/previewService.js')
+    const { buildPreviewHtml, getPreviewData } = await import('../src/services/previewService.js')
+    const debug = String(req.query?.debug || '') === '1'
+    if (debug) {
+      const data = getPreviewData(pub, frontend, backend)
+      res.setHeader('Content-Type', 'application/json')
+      res.setHeader('Cache-Control', 'no-store')
+      return res.status(200).send(JSON.stringify({
+        ok: true,
+        frontend,
+        backend,
+        publicationId: data.id,
+        title: data.title,
+        description: data.description,
+        candidateImage: data.candidateImage,
+        resolvedImage: data.resolvedImage,
+        ogImage: data.image,
+        pageUrl: data.pageUrl
+      }, null, 2))
+    }
+
     const html = buildPreviewHtml(pub, frontend, backend)
 
     res.setHeader('Content-Type', 'text/html')
