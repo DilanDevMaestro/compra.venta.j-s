@@ -54,12 +54,14 @@ export function MarketMarquee() {
           <div className="market-track">
             {loopItems.map((quote, index) => (
               <div key={`${quote.label}-${index}`} className="market-chip">
-                <div className="flex flex-col">
-                  <span className="text-[11px] font-semibold">{quote.label}</span>
-                  <div className="mt-1 flex items-center gap-3 text-[10px] text-muted">
-                    <span>Compra</span>
+                <span className="text-[11px] font-semibold text-center">{quote.label}</span>
+                <div className="mt-2 grid grid-cols-2 gap-3 text-[10px] text-muted">
+                  <div className="flex flex-col items-center">
+                    <span className="uppercase tracking-widest">Compra</span>
                     <span className="text-foreground">${Number(quote.buy).toLocaleString('es-AR')}</span>
-                    <span>Venta</span>
+                  </div>
+                  <div className="flex flex-col items-center">
+                    <span className="uppercase tracking-widest">Venta</span>
                     <span className="text-foreground">${Number(quote.sell).toLocaleString('es-AR')}</span>
                   </div>
                 </div>

@@ -8,9 +8,17 @@ type ListingSectionProps = {
   highlight?: 'offer'
   layout?: 'grid' | 'scroll'
   gridClassName?: string
+  viewMoreLink?: string
 }
 
-export function ListingSection({ title, items, highlight, layout = 'grid', gridClassName }: ListingSectionProps) {
+export function ListingSection({
+  title,
+  items,
+  highlight,
+  layout = 'grid',
+  gridClassName,
+  viewMoreLink
+}: ListingSectionProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null)
 
   const handleScroll = (direction: 'left' | 'right') => {
@@ -23,7 +31,13 @@ export function ListingSection({ title, items, highlight, layout = 'grid', gridC
     <section className="mt-6">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-sm font-semibold">{title}</h2>
-        <button className="text-[10px] font-semibold uppercase tracking-widest text-muted">Ver más</button>
+        {viewMoreLink ? (
+          <Link to={viewMoreLink} className="text-[10px] font-semibold uppercase tracking-widest text-muted">
+            Ver más
+          </Link>
+        ) : (
+          <button className="text-[10px] font-semibold uppercase tracking-widest text-muted">Ver más</button>
+        )}
       </div>
       {layout === 'scroll' ? (
         <div className="relative">

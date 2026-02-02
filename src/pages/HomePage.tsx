@@ -129,8 +129,8 @@ export function HomePage() {
                   Ver categorías
                 </button>
               </div>
-              <ListingSection title="Destacados" items={featured} layout="scroll" />
-              <ListingSection title="Ofertas" items={offers} highlight="offer" layout="scroll" />
+              <ListingSection title="Destacados" items={featured} layout="scroll" viewMoreLink="/destacados" />
+              <ListingSection title="Ofertas" items={offers} highlight="offer" layout="scroll" viewMoreLink="/ofertas" />
             </div>
           </div>
         </main>
