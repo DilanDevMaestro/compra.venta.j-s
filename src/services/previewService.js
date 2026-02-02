@@ -1,7 +1,7 @@
 export function getPreviewData(pub, frontend, backend) {
   const id = pub && (pub._id || pub.id) ? (pub._id || pub.id) : ''
   const title = pub && pub.nombre ? escapeHtml(pub.nombre) : 'Publicación'
-  const description = pub && pub.descripcion ? escapeHtml(String(pub.descripcion).slice(0, 200)) : ''
+  const description = buildPreviewDescription(pub)
   const candidateImage = pickProductImage(pub)
   const frontendBase = (frontend || '').replace(/\/$/, '')
   const backendBase = (backend || '').replace(/\/$/, '')
@@ -57,6 +57,17 @@ export function buildPreviewHtml(pub, frontend, backend) {
   return html
 }
 
+function buildPreviewDescription(pub) {
+  if (!pub) return ''
+  const price = Number(pub.precio || 0)
+  const views = Number(pub.vistas ?? 0)
+  const priceLabel = price > 0 ? `Precio: $${price.toLocaleString('es-AR')}` : ''
+  const viewsLabel = `Vistas: ${views.toLocaleString('es-AR')}`
+  const base = pub.descripcion ? String(pub.descripcion).slice(0, 160) : ''
+  const parts = [priceLabel, viewsLabel, base].filter(Boolean)
+  return escapeHtml(parts.join(' · '))
+}
+
 function pickProductImage(pub) {
   if (!pub) return ''
   if (pub.imagenes && pub.imagenes.length > 0 && pub.imagenes[0]?.url) return pub.imagenes[0].url
@@ -90,3 +101,4 @@ function escapeHtml(str) {
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#39;')
 }
+
