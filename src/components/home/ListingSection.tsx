@@ -64,24 +64,25 @@ export function ListingSection({
               <Link
                 key={item.id}
                 to={`/publicacion/${item.id}`}
-                className="w-[150px] sm:w-[170px] shrink-0 overflow-hidden rounded-xl border transition hover:-translate-y-0.5 dark:border-white/10"
+                className="w-[150px] sm:w-[170px] shrink-0 overflow-hidden rounded-xl border transition hover:-translate-y-0.5 relative dark:border-slate-700/50 dark:shadow-[0_12px_40px_-24px_rgba(0,0,0,0.72)] dark:hover:shadow-[0_18px_50px_-30px_rgba(0,0,0,0.78)] dark:backdrop-blur-sm dark-gradient-bg"
                 style={isDark ? undefined : { ...lightCardBg, borderColor: 'rgba(0,0,0,0.06)' }}
               >
-                <div className="h-20 overflow-hidden">
+                <div className="h-20 overflow-hidden relative">
                   <img
                     src={item.imageUrl}
                     alt={item.title}
                     className="h-full w-full object-cover"
                     loading="lazy"
                   />
+                  <div className="absolute bottom-0 left-0 right-0 h-1/2 pointer-events-none hidden dark:block dark:bg-[linear-gradient(to top,rgba(0,0,0,0.42)_0%,rgba(0,0,0,0)_70%)]" />
                 </div>
-                <div className="flex h-[120px] flex-col p-2">
-                  <p className="line-clamp-2 text-[10px] font-semibold">{item.title}</p>
+                <div className="flex h-[120px] flex-col p-2 bg-transparent dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(0,0,0,0.12)_100%)]">
+                  <p className="line-clamp-2 text-[10px] font-semibold dark:text-white">{item.title}</p>
                   <p className="mt-1 text-[9px] text-muted">{item.location}</p>
                   <p className={`mt-1 text-[12px] font-bold ${highlight === 'offer' ? 'text-offer' : 'text-price'}`}>
                     ${item.price.toLocaleString('es-AR')}
                   </p>
-                  <span className="mt-auto inline-flex rounded-full border border-black/10 px-2 py-0.5 text-[9px] font-semibold text-foreground dark:border-white/10">
+                  <span className="mt-auto inline-flex rounded-full border border-black/10 px-2 py-0.5 text-[9px] font-semibold text-foreground dark:border-slate-700/40 dark:bg-[rgba(255,255,255,0.02)]">
                     Ver detalles
                   </span>
                 </div>
@@ -103,24 +104,25 @@ export function ListingSection({
           <Link
             key={item.id}
             to={`/publicacion/${item.id}`}
-            className="overflow-hidden rounded-xl border transition hover:-translate-y-0.5 dark:border-white/10"
+            className="overflow-hidden rounded-xl border transition hover:-translate-y-0.5 relative dark:border-slate-700/50 dark:shadow-[0_12px_40px_-24px_rgba(0,0,0,0.72)] dark:hover:shadow-[0_18px_50px_-30px_rgba(0,0,0,0.78)] dark:backdrop-blur-sm dark-gradient-bg"
             style={isDark ? undefined : { ...lightCardBg, borderColor: 'rgba(0,0,0,0.06)' }}
           >
-            <div className="h-20 overflow-hidden">
+            <div className="h-20 overflow-hidden relative">
               <img
                 src={item.imageUrl}
                 alt={item.title}
                 className="h-full w-full object-cover"
                 loading="lazy"
               />
+              <div className="absolute bottom-0 left-0 right-0 h-1/2 pointer-events-none hidden dark:block dark:bg-[linear-gradient(to top,rgba(0,0,0,0.42)_0%,rgba(0,0,0,0)_70%)]" />
             </div>
-            <div className="flex h-[120px] flex-col p-2">
-              <p className="line-clamp-2 text-[10px] font-semibold">{item.title}</p>
+            <div className="flex h-[120px] flex-col p-2 bg-transparent dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.02)_0%,rgba(0,0,0,0.12)_100%)]">
+              <p className="line-clamp-2 text-[10px] font-semibold dark:text-white">{item.title}</p>
               <p className="mt-1 text-[9px] text-muted">{item.location}</p>
               <p className={`mt-1 text-[12px] font-bold ${highlight === 'offer' ? 'text-offer' : 'text-price'}`}>
                 ${item.price.toLocaleString('es-AR')}
               </p>
-              <span className="mt-auto inline-flex rounded-full border border-black/10 px-2 py-0.5 text-[9px] font-semibold text-foreground dark:border-white/10">
+              <span className="mt-auto inline-flex rounded-full border border-black/10 px-2 py-0.5 text-[9px] font-semibold text-foreground dark:border-slate-700/40 dark:bg-[rgba(255,255,255,0.02)]">
                 Ver detalles
               </span>
             </div>

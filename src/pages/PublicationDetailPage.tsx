@@ -32,7 +32,7 @@ export function PublicationDetailPage() {
       const stored = localStorage.getItem('theme')
       if (stored) return stored === 'dark'
     } catch (e) {}
-    return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? true
+    return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? false
   })
 
   const toggleTheme = () => {

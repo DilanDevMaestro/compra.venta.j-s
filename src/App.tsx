@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { HomePage } from './pages/HomePage'
 import { CategoryPage } from './pages/CategoryPage'
@@ -9,6 +10,26 @@ import { DestacadosPage } from './pages/DestacadosPage'
 import { OfertasPage } from './pages/OfertasPage'
 
 function App() {
+  useEffect(() => {
+    const applyTheme = () => {
+      try {
+        const stored = localStorage.getItem('theme')
+        const isDark = stored ? stored === 'dark' : window.matchMedia?.('(prefers-color-scheme: dark)')?.matches
+        if (isDark) document.documentElement.classList.add('dark')
+        else document.documentElement.classList.remove('dark')
+      } catch (e) {
+        // ignore
+      }
+    }
+
+    applyTheme()
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'theme') applyTheme()
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [])
+
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />

@@ -20,8 +20,8 @@ export function CategoryModal({ open, categories, onClose, onSelect }: CategoryM
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-        <div className="w-full max-w-sm rounded-2xl border border-black/10 bg-surface shadow-soft dark:border-white/10">
-        <div className="flex items-center justify-between border-b border-black/10 px-4 py-3 text-sm font-semibold dark:border-white/10">
+        <div className="w-full max-w-sm rounded-2xl border border-black/10 bg-surface shadow-soft dark:border-slate-700/50 dark:shadow-[0_20px_60px_-40px_rgba(0,0,0,0.7)]">
+        <div className="flex items-center justify-between border-b border-black/10 px-4 py-3 text-sm font-semibold dark:border-slate-700/50">
           <span className="text-foreground dark:text-white">Categorías</span>
           <button
             onClick={onClose}
@@ -34,10 +34,10 @@ export function CategoryModal({ open, categories, onClose, onSelect }: CategoryM
           <div className="grid gap-2">
             {categories.map((category) => (
               <button
-                key={category.id}
-                onClick={() => onSelect(category)}
-                className={`flex w-full items-center justify-between rounded-xl border border-black/10 bg-background px-3 py-2 text-left text-[11px] font-semibold transition hover:border-foreground/30 dark:border-white/10 ${isDark ? 'text-white' : 'text-foreground'}`}
-              >
+            key={category.id}
+            onClick={() => onSelect(category)}
+            className={`flex w-full items-center justify-between rounded-xl border border-black/10 bg-background px-3 py-2 text-left text-[11px] font-semibold transition hover:border-foreground/30 dark:border-slate-700/50 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0.02)_35%,rgba(0,0,0,0.06)_100%)] ${isDark ? 'text-white' : 'text-foreground'}`}
+          >
                 <span className="flex items-center gap-2">
                   <span className="text-sm">{category.icon}</span>
                   <span>{category.name}</span>

@@ -41,12 +41,29 @@ body {
 }
 
 .scrollbar-hidden {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+  scrollbar-color: transparent transparent;
 }
 
 .scrollbar-hidden::-webkit-scrollbar {
-  display: none;
+  width: 0px;
+  height: 0px;
+}
+
+.scrollbar-hidden::-webkit-scrollbar-thumb {
+  background: transparent;
+}
+
+/* Hide number input spin buttons (webkit + firefox) when `.no-spinner` is applied */
+input[type="number"].no-spinner {
+  -moz-appearance: textfield;
+}
+
+input[type="number"].no-spinner::-webkit-outer-spin-button,
+input[type="number"].no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }
 
 .market-marquee {
@@ -61,6 +78,20 @@ body {
   animation: market-marquee 36s linear infinite;
   will-change: transform;
   transform: translate3d(0, 0, 0);
+}
+
+/* Dark-mode publication container gradient + subtle noise to avoid banding */
+@media (prefers-color-scheme: dark) {
+  .dark .dark-gradient-bg {
+    background-image: linear-gradient(319deg, rgba(255,255,255,0.08) 0%, rgba(0,0,0,0) 100%), url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='64' height='64'><filter id='n'><feTurbulence baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/></filter><rect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03' /></svg>");
+    background-repeat: no-repeat, repeat;
+    background-size: cover, 40px 40px;
+    background-position: center, 0 0;
+    background-attachment: scroll;
+    -webkit-backface-visibility: hidden;
+    backface-visibility: hidden;
+    will-change: background-image;
+  }
 }
 
 .market-marquee:hover .market-track {
