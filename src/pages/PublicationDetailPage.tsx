@@ -71,7 +71,7 @@ export function PublicationDetailPage() {
     const frontendBaseCandidate = (config.FRONTEND_URL || '').replace(/\/$/, '')
     const frontendBase = frontendBaseCandidate || (typeof window !== 'undefined' ? window.location.origin : '')
     // Visible link should point to the publicacion route (Vercel will rewrite crawler requests to /api/preview)
-    const previewUrl = `${frontendBase}/publicacion/${publication._id}?preview=1`
+    const previewUrl = `${frontendBase}/publicacion/${publication._id}`
     // sanitize title by removing any URLs that could have been injected or previously appended
     const safeTitle = String(publication.nombre || '').replace(/https?:\/\/[\w\-./?=&%]+/gi, '').trim()
     const text = `Hola, estoy interesado en tu publicación: ${safeTitle} - ${previewUrl}`
@@ -82,7 +82,7 @@ export function PublicationDetailPage() {
     if (!publication?._id) return ''
     const frontendBaseCandidate = (config.FRONTEND_URL || '').replace(/\/$/, '')
     const frontendBase = frontendBaseCandidate || (typeof window !== 'undefined' ? window.location.origin : '')
-    const previewUrl = `${frontendBase}/api/preview?id=${publication._id}`
+    const previewUrl = `${frontendBase}/publicacion/${publication._id}`
     const safeTitle = String(publication.nombre || '').replace(/https?:\/\/[\w\-./?=&%]+/gi, '').trim()
     const text = `Hola, estoy interesado en tu publicación: ${safeTitle}`
     return `https://t.me/share/url?url=${encodeURIComponent(previewUrl)}&text=${encodeURIComponent(text)}`

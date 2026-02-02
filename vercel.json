@@ -1,12 +1,6 @@
 {
   "rewrites": [
-    {
-      "source": "/publicacion/:id",
-      "destination": "/api/preview?id=:id",
-      "has": [
-        { "type": "query", "key": "preview", "value": "1" }
-      ]
-    },
+    
     {
       "source": "/publicacion/:id",
       "destination": "/api/preview?id=:id",
