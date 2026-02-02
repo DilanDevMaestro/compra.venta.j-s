@@ -1,41 +1,88 @@
-// Serverless preview endpoint for social crawlers.
-// Usage: GET /api/preview?id=PUBLICATION_ID
-export default async function handler(req, res) {
+import express from 'express'
+import Publication from '../models/Publication.js'
+
+const router = express.Router()
+
+// GET /publicacion/:id -> returns HTML with Open Graph meta tags for previews
+// (mounted at /publicacion in server.js)
+router.get('/:id', async (req, res) => {
   try {
-    const id = req.query?.id || (req.url && req.url.split('?id=')[1])
+    const { id } = req.params
     if (!id) return res.status(400).send('Missing id')
 
-    const backend = process.env.API_URL || process.env.VITE_API_URL || 'http://localhost:5000'
-    const frontend = process.env.FRONTEND_URL || process.env.VITE_FRONTEND_URL || 'https://compra-venta-j-s.vercel.app'
+    const pub = await Publication.findById(id).lean()
+    if (!pub) return res.status(404).send('Publicación no encontrada')
 
-    const fetchFn = (typeof fetch === 'function') ? fetch : (await import('node-fetch')).default
+    const frontendBase = process.env.FRONTEND_URL || 'https://compra-venta-j-s.vercel.app'
+    // Prefer virtual imagenPrincipal if available (fall back to frontend static image)
+    const imageUrl = (pub.imagenes && pub.imagenes.length > 0)
+      ? pub.imagenes[0].url
+      : `${frontendBase}/static/default-product.jpg`
 
-    const pubRes = await fetchFn(`${backend.replace(/\/$/, '')}/publications/${id}`)
-    if (!pubRes.ok) return res.status(404).send('Publicación no encontrada')
-    const pub = await pubRes.json()
+    // Serve the preview image through the FRONTEND image proxy so the backend
+    // host is never exposed in OG tags. Crawlers will request the image under
+    // the frontend domain (e.g. https://your-frontend/api/image?...)
+    const isAbsoluteImage = /^https?:\/\//i.test(imageUrl)
+    const ogImage = isAbsoluteImage
+      ? imageUrl
+      : `${frontendBase.replace(/\/$/, '')}/api/image?url=${encodeURIComponent(imageUrl)}&w=1200&fmt=jpeg&q=80&v=${encodeURIComponent(id)}`
 
-    // Build the canonical page URL
-    const pageUrl = `${(frontend || '').replace(/\/$/, '')}/publicacion/${id}`
+    const pageUrl = `${frontendBase.replace(/\/$/, '')}/publicacion/${id}`
 
-    // Always return OG HTML so WhatsApp/Telegram reliably pick the product preview.
-    // The HTML includes a meta refresh + JS redirect to the SPA page.
-    const { buildPreviewHtml } = await import('../src/services/previewService.js')
-    const html = buildPreviewHtml(pub, frontend)
+    const title = pub.nombre || 'Publicación en Compra-Venta'
+    const description = (pub.descripcion && pub.descripcion.substring(0, 200)) || ''
 
-    res.setHeader('Content-Type', 'text/html')
-    res.setHeader('Cache-Control', 'public, max-age=300')
-    return res.status(200).send(html)
+    // Return simple HTML with OG tags so Telegram, WhatsApp, Facebook, etc. can crawl it.
+    const html = `<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>${escapeHtml(title)}</title>
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="${escapeHtml(title)}" />
+  <meta property="og:description" content="${escapeHtml(description)}" />
+  <meta property="og:image" content="${ogImage}" />
+  <meta property="og:image:secure_url" content="${ogImage}" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="${escapeHtml(title)}" />
+  <meta property="og:url" content="${pageUrl}" />
+
+  <!-- Twitter card -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="${escapeHtml(title)}" />
+  <meta name="twitter:description" content="${escapeHtml(description)}" />
+  <meta name="twitter:image" content="${ogImage}" />
+
+  <link rel="canonical" href="${pageUrl}" />
+  <meta http-equiv="refresh" content="0;url=${pageUrl}" />
+  <script>window.location.replace('${pageUrl}')</script>
+</head>
+<body>
+  <p>Redirigiendo a la publicación...</p>
+</body>
+</html>`
+
+    // Cache preview responses for a short time to avoid overloading DB
+    res.set('Cache-Control', 'public, max-age=300')
+    res.type('html').send(html)
   } catch (err) {
-    console.error('preview function error', err)
-    return res.status(500).send('Error generating preview')
+    console.error('Preview route error:', err?.message || err)
+    res.status(500).send('Error generating preview')
   }
-}
+})
 
 function escapeHtml(str) {
-  return String(str || '')
+  if (!str) return ''
+  return String(str)
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
+    .replace(/\"/g, '&quot;')
     .replace(/'/g, '&#39;')
 }
+
+export default router
