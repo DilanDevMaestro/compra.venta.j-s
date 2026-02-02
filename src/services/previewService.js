@@ -1,16 +1,11 @@
-export function buildPreviewHtml(pub, frontend) {
+export function buildPreviewHtml(pub, frontend, backend) {
   const title = pub && pub.nombre ? escapeHtml(pub.nombre) : 'Publicación'
   const description = pub && pub.descripcion ? escapeHtml(String(pub.descripcion).slice(0, 200)) : ''
-  const originalImage = (pub && pub.imagenes && pub.imagenes[0] && pub.imagenes[0].url)
-    ? pub.imagenes[0].url
-    : `${(frontend || '').replace(/\/$/, '')}/static/default-product.jpg`
-
-  const isAbsoluteImage = /^https?:\/\//i.test(originalImage)
-  // Prefer direct product image URL so WhatsApp can fetch it without extra hops.
-  // Fallback to frontend proxy only when the URL is not absolute.
-  const image = isAbsoluteImage
-    ? originalImage
-    : `${(frontend || '').replace(/\/$/, '')}/api/image?url=${encodeURIComponent(originalImage)}&w=1200&fmt=jpeg&v=${encodeURIComponent(id)}`
+  const candidateImage = pickProductImage(pub)
+  const frontendBase = (frontend || '').replace(/\/$/, '')
+  const backendBase = (backend || '').replace(/\/$/, '')
+  const resolvedImage = resolveImageUrl(candidateImage, frontendBase, backendBase)
+  const image = `${frontendBase}/api/image?url=${encodeURIComponent(resolvedImage)}&w=1200&fmt=jpeg&v=${encodeURIComponent(id)}`
   const id = pub && (pub._id || pub.id) ? (pub._id || pub.id) : ''
   const pageUrl = `${(frontend || '').replace(/\/$/, '')}/publicacion/${id}`
 
@@ -27,6 +22,7 @@ export function buildPreviewHtml(pub, frontend) {
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="${title}" />
+  <meta property="og:image:type" content="image/jpeg" />
   <meta property="og:url" content="${pageUrl}" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="${title}" />
@@ -42,6 +38,31 @@ export function buildPreviewHtml(pub, frontend) {
 </html>`
 
   return html
+}
+
+function pickProductImage(pub) {
+  if (!pub) return ''
+  if (pub.imagenes && pub.imagenes.length > 0 && pub.imagenes[0]?.url) return pub.imagenes[0].url
+  if (pub.imagenPrincipal) return pub.imagenPrincipal
+  if (pub.imagen) return pub.imagen
+  if (pub.imagenUrl) return pub.imagenUrl
+  if (pub.image) return pub.image
+  if (pub.imageUrl) return pub.imageUrl
+  if (pub.foto) return pub.foto
+  if (pub.fotos && pub.fotos.length > 0) return pub.fotos[0]
+  return ''
+}
+
+function resolveImageUrl(raw, frontendBase, backendBase) {
+  const fallback = `${frontendBase}/static/default-product.jpg`
+  if (!raw || typeof raw !== 'string') return fallback
+  const trimmed = raw.trim()
+  if (!trimmed) return fallback
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  if (trimmed.startsWith('/')) {
+    return backendBase ? `${backendBase}${trimmed}` : `${frontendBase}${trimmed}`
+  }
+  return backendBase ? `${backendBase}/${trimmed}` : `${frontendBase}/${trimmed}`
 }
 
 function escapeHtml(str) {
