@@ -5,8 +5,12 @@ export function buildPreviewHtml(pub, frontend) {
     ? pub.imagenes[0].url
     : `${(frontend || '').replace(/\/$/, '')}/static/default-product.jpg`
 
-  // Serve image through frontend proxy so crawlers request image under frontend domain
-  const image = `${(frontend || '').replace(/\/$/, '')}/api/image?url=${encodeURIComponent(originalImage)}&w=1200&fmt=jpeg&v=${encodeURIComponent(id)}`
+  const isAbsoluteImage = /^https?:\/\//i.test(originalImage)
+  // Prefer direct product image URL so WhatsApp can fetch it without extra hops.
+  // Fallback to frontend proxy only when the URL is not absolute.
+  const image = isAbsoluteImage
+    ? originalImage
+    : `${(frontend || '').replace(/\/$/, '')}/api/image?url=${encodeURIComponent(originalImage)}&w=1200&fmt=jpeg&v=${encodeURIComponent(id)}`
   const id = pub && (pub._id || pub.id) ? (pub._id || pub.id) : ''
   const pageUrl = `${(frontend || '').replace(/\/$/, '')}/publicacion/${id}`
 
