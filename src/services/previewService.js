@@ -1,4 +1,5 @@
-export function buildPreviewHtml(pub, frontend, backend) {
+export function getPreviewData(pub, frontend, backend) {
+  const id = pub && (pub._id || pub.id) ? (pub._id || pub.id) : ''
   const title = pub && pub.nombre ? escapeHtml(pub.nombre) : 'Publicación'
   const description = pub && pub.descripcion ? escapeHtml(String(pub.descripcion).slice(0, 200)) : ''
   const candidateImage = pickProductImage(pub)
@@ -6,8 +7,21 @@ export function buildPreviewHtml(pub, frontend, backend) {
   const backendBase = (backend || '').replace(/\/$/, '')
   const resolvedImage = resolveImageUrl(candidateImage, frontendBase, backendBase)
   const image = `${frontendBase}/api/image?url=${encodeURIComponent(resolvedImage)}&w=1200&fmt=jpeg&v=${encodeURIComponent(id)}`
-  const id = pub && (pub._id || pub.id) ? (pub._id || pub.id) : ''
-  const pageUrl = `${(frontend || '').replace(/\/$/, '')}/publicacion/${id}`
+  const pageUrl = `${frontendBase}/publicacion/${id}`
+
+  return {
+    id,
+    title,
+    description,
+    image,
+    pageUrl,
+    resolvedImage,
+    candidateImage
+  }
+}
+
+export function buildPreviewHtml(pub, frontend, backend) {
+  const { title, description, image, pageUrl } = getPreviewData(pub, frontend, backend)
 
   const html = `<!doctype html>
 <html lang="es">
