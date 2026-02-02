@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Header } from '../components/layout/Header'
 import { Footer } from '../components/layout/Footer'
 import { publicationsApi, userApi } from '../services/api'
@@ -502,7 +502,7 @@ export function PerfilPage() {
             ) : null}
           </div>
 
-          <div className="mt-6 grid gap-4 lg:grid-cols-[1fr_1fr]">
+          <div className="mt-6 grid gap-4">
             <div
               style={lightSectionStyle}
               className="rounded-2xl border border-card/50 bg-card/60 p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
@@ -514,7 +514,13 @@ export function PerfilPage() {
                 <h2 className="text-sm font-semibold">Atajos rápidos</h2>
                 <span className="text-xs text-muted sm:hidden">{isShortcutsOpen ? 'Ocultar' : 'Mostrar'}</span>
               </button>
-              <div className={isShortcutsOpen ? 'mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3' : 'mt-3 hidden sm:grid sm:grid-cols-3 sm:gap-3'}>
+              <div
+                className={
+                  isShortcutsOpen
+                    ? 'mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4'
+                    : 'mt-3 hidden sm:grid sm:grid-cols-3 sm:gap-3 lg:grid-cols-4'
+                }
+              >
                 <button
                   style={lightCardStyle}
                   className="rounded-xl border border-card/40 bg-surface p-3 text-left shadow-[0_12px_30px_-22px_rgba(0,0,0,0.4)] dark:border-slate-700/50 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
@@ -555,18 +561,26 @@ export function PerfilPage() {
               {loading ? (
                 <p className="mt-3 text-xs text-muted">Cargando...</p>
               ) : publications.length ? (
-                <ul className="mt-3 grid gap-2 sm:grid-cols-2">
+                <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
                   {publications.map((pub) => (
-                    <li
-                      key={pub._id}
-                      style={lightCardStyle}
-                      className="rounded-xl border border-card/40 bg-surface p-3 shadow-[0_12px_30px_-22px_rgba(0,0,0,0.4)] dark:border-slate-700/50 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
-                    >
-                      <p className="text-[12px] font-semibold">{pub.nombre}</p>
-                      <p className="text-[11px] text-muted">${Number(pub.precio || 0).toLocaleString('es-AR')}</p>
-                      <p className="mt-1 text-[10px] text-muted">
-                        {pub.activo ? 'Activa' : 'Pausada'} · {pub.vistas || 0} vistas
-                      </p>
+                    <li key={pub._id}>
+                      <Link
+                        to={`/publicacion/${pub._id}`}
+                        style={lightCardStyle}
+                        className="block rounded-2xl border border-card/40 bg-surface/80 p-3 shadow-[0_16px_40px_-26px_rgba(0,0,0,0.45)] transition hover:-translate-y-0.5 dark:border-slate-700/50 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(0,0,0,0.15)_100%)]"
+                      >
+                        <div className="flex items-center justify-between">
+                          <p className="text-[12px] font-semibold">{pub.nombre}</p>
+                          <span className="rounded-full border border-black/10 bg-surface px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-muted dark:border-slate-700/60">
+                            {pub.activo ? 'Activa' : 'Pausada'}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-muted">${Number(pub.precio || 0).toLocaleString('es-AR')}</p>
+                        <div className="mt-2 flex items-center justify-between text-[10px] text-muted">
+                          <span>{pub.vistas || 0} vistas</span>
+                          <span className="text-foreground">Ver detalles</span>
+                        </div>
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -581,82 +595,82 @@ export function PerfilPage() {
 
       {isBusinessModalOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
-          <div className="w-full max-w-lg rounded-2xl border border-black/10 bg-surface p-4 shadow-soft dark:border-white/10">
+          <div className="w-full max-w-lg rounded-2xl border border-black/10 bg-surface p-4 shadow-soft text-foreground dark:border-slate-700/60">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold">Perfil Empresa</h2>
               <button
                 onClick={() => setIsBusinessModalOpen(false)}
-                className="rounded-full border border-black/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted dark:border-white/10"
+                className="rounded-full border border-black/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted dark:border-slate-700/60"
               >
                 Cerrar
               </button>
             </div>
             <form onSubmit={handleBusinessSubmit} className="mt-4 space-y-3">
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="text-[11px] font-semibold">
+                <label className="text-[11px] font-semibold text-foreground">
                   Nombre comercial
                   <input
                     value={formState.businessName}
                     onChange={(event) => setFormState({ ...formState, businessName: event.target.value })}
-                    className="mt-1.5 w-full rounded-lg border border-card/60 bg-background px-2.5 py-1.5 text-[12px]"
+                    className="mt-1.5 w-full rounded-lg border border-card/60 bg-background px-2.5 py-1.5 text-[12px] text-foreground placeholder:text-muted dark:border-slate-700/60"
                   />
                 </label>
-                <label className="text-[11px] font-semibold">
+                <label className="text-[11px] font-semibold text-foreground">
                   Ubicación
                   <input
                     value={formState.location}
                     onChange={(event) => setFormState({ ...formState, location: event.target.value })}
-                    className="mt-1.5 w-full rounded-lg border border-card/60 bg-background px-2.5 py-1.5 text-[12px]"
+                    className="mt-1.5 w-full rounded-lg border border-card/60 bg-background px-2.5 py-1.5 text-[12px] text-foreground placeholder:text-muted dark:border-slate-700/60"
                   />
                 </label>
               </div>
 
-              <label className="text-[11px] font-semibold">
+              <label className="text-[11px] font-semibold text-foreground">
                 Descripción
                 <textarea
                   value={formState.description}
                   onChange={(event) => setFormState({ ...formState, description: event.target.value })}
-                  className="mt-1.5 min-h-[90px] w-full rounded-lg border border-card/60 bg-background px-2.5 py-1.5 text-[12px]"
+                  className="mt-1.5 min-h-[90px] w-full rounded-lg border border-card/60 bg-background px-2.5 py-1.5 text-[12px] text-foreground placeholder:text-muted dark:border-slate-700/60"
                 />
               </label>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="text-[11px] font-semibold">
+                <label className="text-[11px] font-semibold text-foreground">
                   Facebook
                   <input
                     value={formState.facebook}
                     onChange={(event) => setFormState({ ...formState, facebook: event.target.value })}
-                    className="mt-1.5 w-full rounded-lg border border-card/60 bg-background px-2.5 py-1.5 text-[12px]"
+                    className="mt-1.5 w-full rounded-lg border border-card/60 bg-background px-2.5 py-1.5 text-[12px] text-foreground placeholder:text-muted dark:border-slate-700/60"
                   />
                 </label>
-                <label className="text-[11px] font-semibold">
+                <label className="text-[11px] font-semibold text-foreground">
                   Instagram
                   <input
                     value={formState.instagram}
                     onChange={(event) => setFormState({ ...formState, instagram: event.target.value })}
-                    className="mt-1.5 w-full rounded-lg border border-card/60 bg-background px-2.5 py-1.5 text-[12px]"
+                    className="mt-1.5 w-full rounded-lg border border-card/60 bg-background px-2.5 py-1.5 text-[12px] text-foreground placeholder:text-muted dark:border-slate-700/60"
                   />
                 </label>
-                <label className="text-[11px] font-semibold">
+                <label className="text-[11px] font-semibold text-foreground">
                   TikTok
                   <input
                     value={formState.tiktok}
                     onChange={(event) => setFormState({ ...formState, tiktok: event.target.value })}
-                    className="mt-1.5 w-full rounded-lg border border-card/60 bg-background px-2.5 py-1.5 text-[12px]"
+                    className="mt-1.5 w-full rounded-lg border border-card/60 bg-background px-2.5 py-1.5 text-[12px] text-foreground placeholder:text-muted dark:border-slate-700/60"
                   />
                 </label>
-                <label className="text-[11px] font-semibold">
+                <label className="text-[11px] font-semibold text-foreground">
                   Sitio web
                   <input
                     value={formState.website}
                     onChange={(event) => setFormState({ ...formState, website: event.target.value })}
-                    className="mt-1.5 w-full rounded-lg border border-card/60 bg-background px-2.5 py-1.5 text-[12px]"
+                    className="mt-1.5 w-full rounded-lg border border-card/60 bg-background px-2.5 py-1.5 text-[12px] text-foreground placeholder:text-muted dark:border-slate-700/60"
                   />
                 </label>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2">
-                <label className="text-[11px] font-semibold">
+                <label className="text-[11px] font-semibold text-foreground">
                   Banner
                   <input
                     type="file"
@@ -665,7 +679,7 @@ export function PerfilPage() {
                     className="mt-1.5 block w-full text-[11px] text-muted"
                   />
                 </label>
-                <label className="text-[11px] font-semibold">
+                <label className="text-[11px] font-semibold text-foreground">
                   Foto de perfil
                   <input
                     type="file"

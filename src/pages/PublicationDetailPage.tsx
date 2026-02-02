@@ -111,8 +111,8 @@ export function PublicationDetailPage() {
             <div className="mt-8 text-xs text-muted">Cargando publicación...</div>
           ) : publication ? (
             <div className="mt-4 grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
-              <section className="rounded-xl border border-card/50 bg-card/60 p-3 shadow-soft">
-                <div className="overflow-hidden rounded-xl border border-card/40 bg-surface">
+              <section className="rounded-2xl border border-card/50 bg-[linear-gradient(180deg,rgba(0,0,0,0.12)_0%,rgba(0,0,0,0.06)_35%,rgba(0,0,0,0)_100%)] p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(0,0,0,0.2)_100%)]">
+                <div className="overflow-hidden rounded-xl border border-card/40 bg-surface dark:border-slate-700/50">
                   <img
                     src={images[selectedImage] || fallbackImage}
                     alt={publication.nombre}
@@ -127,7 +127,7 @@ export function PublicationDetailPage() {
                         type="button"
                         onClick={() => setSelectedImage(index)}
                         className={`overflow-hidden rounded-lg border ${
-                          selectedImage === index ? 'border-primary/70' : 'border-card/40'
+                          selectedImage === index ? 'border-primary/70' : 'border-card/40 dark:border-slate-700/50'
                         }`}
                       >
                         <img src={url} alt="Miniatura" className="h-12 w-full object-cover" />
@@ -167,7 +167,7 @@ export function PublicationDetailPage() {
               </section>
 
               <aside className="space-y-4">
-                <div className="rounded-xl border border-card/50 bg-card/60 p-3 shadow-soft">
+                <div className="rounded-2xl border border-card/50 bg-[linear-gradient(180deg,rgba(0,0,0,0.12)_0%,rgba(0,0,0,0.06)_35%,rgba(0,0,0,0)_100%)] p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(0,0,0,0.2)_100%)]">
                   <p className="text-[10px] uppercase tracking-[0.2em] text-muted">Categoría</p>
                   <p className="mt-1 text-[12px] font-semibold">
                     {publication.subcategoria || publication.categoria || 'Gimnasios y Fitness'}
@@ -187,10 +187,10 @@ export function PublicationDetailPage() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-card/50 bg-card/60 p-3 shadow-soft">
+                <div className="rounded-2xl border border-card/50 bg-[linear-gradient(180deg,rgba(0,0,0,0.12)_0%,rgba(0,0,0,0.06)_35%,rgba(0,0,0,0)_100%)] p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(0,0,0,0.2)_100%)]">
                   <h2 className="text-[12px] font-semibold">Vendedor</h2>
                   <div className="mt-2 flex items-center gap-2">
-                    <div className="h-10 w-10 overflow-hidden rounded-full border border-card/40 bg-surface">
+                    <div className="h-10 w-10 overflow-hidden rounded-full border border-card/40 bg-surface dark:border-slate-700/50">
                       <img
                         src={publication.userPicture || fallbackImage}
                         alt={publication.userName || 'Usuario'}
@@ -216,7 +216,7 @@ export function PublicationDetailPage() {
                   ) : null}
                 </div>
 
-                <div className="rounded-xl border border-card/50 bg-card/60 p-3 text-[11px] text-muted shadow-soft">
+                <div className="rounded-2xl border border-card/50 bg-[linear-gradient(180deg,rgba(0,0,0,0.12)_0%,rgba(0,0,0,0.06)_35%,rgba(0,0,0,0)_100%)] p-4 text-[11px] text-muted shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(0,0,0,0.2)_100%)]">
                   <p>Vistas: {publication.vistas ?? 0}</p>
                   <div className="mt-2 flex items-center justify-between gap-2">
                     <p>Favoritos: {publication.likes ?? 0}</p>
@@ -224,7 +224,7 @@ export function PublicationDetailPage() {
                       type="button"
                       onClick={handleToggleFavorite}
                       disabled={isLiking}
-                      className="inline-flex items-center gap-1 rounded-full border border-black/10 bg-surface px-2 py-0.5 text-[10px] font-semibold text-foreground disabled:opacity-60 dark:border-white/10"
+                      className="inline-flex items-center gap-1 rounded-full border border-black/10 bg-surface px-2 py-0.5 text-[10px] font-semibold text-foreground disabled:opacity-60 dark:border-slate-700/60"
                     >
                       <img src="/image/corazon.gif" alt="Favorito" className="h-4 w-4" />
                       <span>{publication.isLiked ? 'Favorito' : 'Me gusta'}</span>
