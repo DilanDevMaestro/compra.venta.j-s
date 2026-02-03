@@ -10,6 +10,7 @@ import { DestacadosPage } from './pages/DestacadosPage'
 import { OfertasPage } from './pages/OfertasPage'
 import { LocationPage } from './pages/LocationPage'
 import { LocationRequiredModal } from './components/profile/LocationRequiredModal'
+import { AdminDashboardPage } from './pages/AdminDashboardPage'
 
 function App() {
   useEffect(() => {
@@ -46,6 +47,7 @@ function App() {
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/auth/google/callback" element={<AuthPage />} />
         <Route path="/perfil" element={<PerfilPage />} />
+        <Route path="/admin" element={<AdminDashboardPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
