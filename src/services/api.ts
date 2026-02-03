@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { AxiosHeaders } from 'axios'
 import { config } from '../config/config'
 import storage from './storage'
 
@@ -52,8 +52,10 @@ const fetchConfig: RequestInit = {
 }
 
 const getAuthHeaders = () => {
+  const token = storage.getToken()
   return {
-    'Content-Type': 'application/json'
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
   }
 }
 
@@ -74,7 +76,18 @@ const renewToken = async () => {
   throw new Error('No se pudo renovar el token')
 }
 
-authenticatedRequest.interceptors.request.use((cfg) => cfg, (error) => Promise.reject(error))
+authenticatedRequest.interceptors.request.use(
+  (cfg) => {
+    const token = storage.getToken()
+    if (token) {
+      const headers = AxiosHeaders.from(cfg.headers || {})
+      headers.set('Authorization', `Bearer ${token}`)
+      cfg.headers = headers
+    }
+    return cfg
+  },
+  (error) => Promise.reject(error)
+)
 
 authenticatedRequest.interceptors.response.use(
   (response) => response,
@@ -210,7 +223,7 @@ export const publicationsApi = {
   getUserPublications: async () => {
     const response = await fetch(`${config.API_URL}/publications/mis-publicaciones`, {
       headers: {
-        'Content-Type': 'application/json'
+        ...getAuthHeaders()
       },
       credentials: 'include'
     })
