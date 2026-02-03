@@ -37,6 +37,7 @@ export function AuthHandler() {
         const data = await response.json()
         if (data.user) {
           // Backend sets httpOnly cookie for token; store only sanitized user
+          if (data.token) storage.setToken(data.token)
           storage.setUser(data.user)
           navigate('/perfil', { replace: true })
           return
