@@ -419,39 +419,51 @@ export function PerfilPage() {
             </div>
           </div>
 
-          <div className={isBusinessActive ? 'mt-5 grid grid-cols-4 gap-2 sm:gap-3' : 'mt-5 grid grid-cols-2 gap-2 sm:gap-3'}>
+          <div className="mt-5">
             <div
               style={lightCardStyle}
-              className="min-h-[64px] rounded-xl border border-card/50 bg-card/60 p-2 text-center shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] flex flex-col items-center justify-center gap-1 dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+              className="hidden w-full items-center justify-between gap-4 rounded-xl border border-card/50 bg-card/60 px-4 py-2 text-[11px] text-muted shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] sm:flex dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
             >
-              <p className="text-[10px] leading-tight text-muted">Publicaciones</p>
-              <p className="text-lg font-semibold">{stats.totalPublications}</p>
+              <div className="flex items-center gap-2">
+                <span className="uppercase tracking-widest">Publicaciones</span>
+                <span className="text-base font-semibold text-foreground">{stats.totalPublications}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="uppercase tracking-widest">Activas</span>
+                <span className="text-base font-semibold text-foreground">{stats.activePublications}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="uppercase tracking-widest">Vistas</span>
+                <span className="text-base font-semibold text-foreground">{stats.totalViews}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="uppercase tracking-widest">Favoritos</span>
+                <span className="text-base font-semibold text-foreground">{stats.totalLikes}</span>
+              </div>
             </div>
-            {isBusinessActive ? (
-              <>
-                <div
-                  style={lightCardStyle}
-                  className="min-h-[64px] rounded-xl border border-card/50 bg-card/60 p-2 text-center shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] flex flex-col items-center justify-center gap-1 dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
-                >
-                  <p className="text-[10px] leading-tight text-muted">Activas</p>
-                  <p className="text-lg font-semibold">{stats.activePublications}</p>
-                </div>
-                <div
-                  style={lightCardStyle}
-                  className="min-h-[64px] rounded-xl border border-card/50 bg-card/60 p-2 text-center shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] flex flex-col items-center justify-center gap-1 dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
-                >
-                  <p className="text-[10px] leading-tight text-muted">Vistas</p>
-                  <p className="text-lg font-semibold">{stats.totalViews}</p>
-                </div>
-                <div
-                  style={lightCardStyle}
-                  className="min-h-[64px] rounded-xl border border-card/50 bg-card/60 p-2 text-center shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] flex flex-col items-center justify-center gap-1 dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
-                >
-                  <p className="text-[10px] leading-tight text-muted">Favoritos</p>
-                  <p className="text-lg font-semibold">{stats.totalLikes}</p>
-                </div>
-              </>
-            ) : (
+
+            <div className="grid grid-cols-2 gap-2 sm:hidden">
+              <div
+                style={lightCardStyle}
+                className="min-h-[64px] rounded-xl border border-card/50 bg-card/60 p-2 text-center shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] flex flex-col items-center justify-center gap-1 dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+              >
+                <p className="text-[10px] leading-tight text-muted">Publicaciones</p>
+                <p className="text-lg font-semibold">{stats.totalPublications}</p>
+              </div>
+              <div
+                style={lightCardStyle}
+                className="min-h-[64px] rounded-xl border border-card/50 bg-card/60 p-2 text-center shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] flex flex-col items-center justify-center gap-1 dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+              >
+                <p className="text-[10px] leading-tight text-muted">Activas</p>
+                <p className="text-lg font-semibold">{stats.activePublications}</p>
+              </div>
+              <div
+                style={lightCardStyle}
+                className="min-h-[64px] rounded-xl border border-card/50 bg-card/60 p-2 text-center shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] flex flex-col items-center justify-center gap-1 dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+              >
+                <p className="text-[10px] leading-tight text-muted">Vistas</p>
+                <p className="text-lg font-semibold">{stats.totalViews}</p>
+              </div>
               <div
                 style={lightCardStyle}
                 className="min-h-[64px] rounded-xl border border-card/50 bg-card/60 p-2 text-center shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] flex flex-col items-center justify-center gap-1 dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
@@ -459,7 +471,7 @@ export function PerfilPage() {
                 <p className="text-[10px] leading-tight text-muted">Favoritos</p>
                 <p className="text-lg font-semibold">{stats.totalLikes}</p>
               </div>
-            )}
+            </div>
           </div>
 
           <div className={isBusinessActive ? 'mt-5 grid gap-3 lg:grid-cols-[1.2fr_1fr]' : 'mt-5 grid gap-3 lg:grid-cols-1'}>
