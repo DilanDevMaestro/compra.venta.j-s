@@ -26,6 +26,8 @@ type PublicationDetail = {
   isLiked?: boolean
   fechaCreacion?: string
   tiempoTranscurrido?: string
+  shareCount?: number
+  whatsappClicks?: number
 }
 
 export function PublicationDetailPage() {
@@ -78,15 +80,44 @@ export function PublicationDetailPage() {
     return `https://wa.me/${digits}?text=${encodeURIComponent(text)}`
   }, [publication])
 
-  const telegramShareLink = useMemo(() => {
+  const shareUrl = useMemo(() => {
     if (!publication?._id) return ''
     const frontendBaseCandidate = (config.FRONTEND_URL || '').replace(/\/$/, '')
     const frontendBase = frontendBaseCandidate || (typeof window !== 'undefined' ? window.location.origin : '')
-    const previewUrl = `${frontendBase}/publicacion/${publication._id}`
-    const safeTitle = String(publication.nombre || '').replace(/https?:\/\/[\w\-./?=&%]+/gi, '').trim()
-    const text = `Hola, estoy interesado en tu publicación: ${safeTitle}`
-    return `https://t.me/share/url?url=${encodeURIComponent(previewUrl)}&text=${encodeURIComponent(text)}`
+    return `${frontendBase}/publicacion/${publication._id}`
   }, [publication])
+
+  const handleWebShare = async () => {
+    if (!shareUrl) return
+    const safeTitle = String(publication?.nombre || '').replace(/https?:\/\/[\w\-./?=&%]+/gi, '').trim()
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: safeTitle || 'Publicación',
+          text: safeTitle,
+          url: shareUrl
+        })
+        if (publication?._id) {
+          await publicationsApi.incrementShare(publication._id)
+          setPublication((prev) => (prev ? { ...prev, shareCount: (prev.shareCount || 0) + 1 } : prev))
+        }
+        return
+      } catch {
+        // ignore share cancel
+      }
+    }
+
+    try {
+      await navigator.clipboard?.writeText(shareUrl)
+      setLikeMessage('Link copiado para compartir.')
+      if (publication?._id) {
+        await publicationsApi.incrementShare(publication._id)
+        setPublication((prev) => (prev ? { ...prev, shareCount: (prev.shareCount || 0) + 1 } : prev))
+      }
+    } catch {
+      window.open(shareUrl, '_blank', 'noopener,noreferrer')
+    }
+  }
 
   useEffect(() => {
     if (!id) return
@@ -269,21 +300,35 @@ export function PublicationDetailPage() {
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex w-full items-center justify-center rounded-full bg-foreground px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-background"
+                        onClick={async () => {
+                          if (!publication?._id) return
+                          try {
+                            await publicationsApi.incrementWhatsappClick(publication._id)
+                            setPublication((prev) => (prev ? { ...prev, whatsappClicks: (prev.whatsappClicks || 0) + 1 } : prev))
+                          } catch {
+                            // ignore
+                          }
+                        }}
                       >
                         Contactar por WhatsApp
                       </a>
                     ) : null}
 
-                    {telegramShareLink ? (
-                      <a
-                        href={telegramShareLink}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex w-full items-center justify-center rounded-full border border-card/40 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground"
-                      >
-                        Compartir por Telegram
-                      </a>
-                    ) : null}
+                    <button
+                      type="button"
+                      onClick={handleWebShare}
+                      className="inline-flex w-full items-center justify-center rounded-full border border-card/40 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground"
+                    >
+                      Compartir
+                    </button>
+                  </div>
+                  <div className="mt-3 grid grid-cols-2 gap-2 text-[10px] text-muted">
+                    <div className="rounded-lg border border-card/40 px-2 py-1 text-center">
+                      Compartidos: {publication.shareCount ?? 0}
+                    </div>
+                    <div className="rounded-lg border border-card/40 px-2 py-1 text-center">
+                      WhatsApp: {publication.whatsappClicks ?? 0}
+                    </div>
                   </div>
                 </div>
 
