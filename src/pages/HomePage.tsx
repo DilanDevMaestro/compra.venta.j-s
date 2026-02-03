@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { categories as fallbackCategories } from '../data/categories'
 import type { Listing } from '../data/listings'
-import { publicationsApi } from '../services/api'
+import { bannerApi, publicationsApi } from '../services/api'
 import { config } from '../config/config'
 import { Header } from '../components/layout/Header'
 import { Hero } from '../components/home/Hero'
@@ -32,6 +32,13 @@ type RawPublication = {
 }
 
 type LocationItem = { name: string; count: number; country?: string; province?: string }
+type BannerPayload = {
+  active: boolean
+  imageUrl?: string
+  buttonText?: string
+  buttonUrl?: string
+  buttonPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+}
 
 export function HomePage() {
   const [isDark, setIsDark] = useState<boolean>(() => {
@@ -72,6 +79,7 @@ export function HomePage() {
     province?: string
     city?: string
   } | null>(null)
+  const [banner, setBanner] = useState<BannerPayload | null>(null)
   const navigate = useNavigate()
 
   const categoryIndex = useMemo(() => {
@@ -229,6 +237,23 @@ export function HomePage() {
     })()
   }, [loadHomeData])
 
+  useEffect(() => {
+    const loadBanner = async () => {
+      try {
+        const data = (await bannerApi.getActive()) as BannerPayload
+        if (data?.active) {
+          setBanner(data)
+        } else {
+          setBanner(null)
+        }
+      } catch (error) {
+        console.error('Error loading banner:', error)
+      }
+    }
+
+    loadBanner()
+  }, [])
+
   // Refetch recent publications when timeframe changes (or on mount)
   useEffect(() => {
     const fetchRecent = async () => {
@@ -301,6 +326,36 @@ export function HomePage() {
         <Header isDark={isDark} onToggleTheme={toggleTheme} />
         <main className="mx-auto w-full max-w-5xl px-4 pb-12 flex-1">
           <Hero />
+          {banner?.active && banner.imageUrl ? (
+            <div className="mt-4">
+              <div className="relative overflow-hidden rounded-2xl border border-card/40 bg-surface">
+                <img
+                  src={banner.imageUrl}
+                  alt="Banner"
+                  className="h-36 w-full object-cover sm:h-44"
+                  loading="lazy"
+                />
+                {banner.buttonText && banner.buttonUrl ? (
+                  <a
+                    href={banner.buttonUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={`absolute z-10 rounded-full border border-white/60 bg-black/60 px-3 py-1 text-[11px] font-semibold text-white shadow-lg backdrop-blur ${
+                      banner.buttonPosition === 'top-left'
+                        ? 'left-3 top-3'
+                        : banner.buttonPosition === 'top-right'
+                        ? 'right-3 top-3'
+                        : banner.buttonPosition === 'bottom-left'
+                        ? 'left-3 bottom-3'
+                        : 'right-3 bottom-3'
+                    }`}
+                  >
+                    {banner.buttonText}
+                  </a>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
           <MarketMarquee />
           <div className="mt-4 flex gap-3">
             <div className="flex flex-col">
