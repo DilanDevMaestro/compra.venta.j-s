@@ -77,7 +77,7 @@ export function SearchBar({ placeholder = 'Buscar productos, servicios...' }: Se
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder={placeholder}
-        className="w-full rounded-full border border-black/10 bg-background px-3 py-1 text-[11px] text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-foreground/40 dark:border-white/10"
+        className="w-full rounded-full border border-black/10 bg-background px-3 py-1 text-[16px] md:text-[11px] text-foreground shadow-sm focus:outline-none focus:ring-2 focus:ring-foreground/40 dark:border-white/10"
       />
       {open && (
         <div className="absolute top-8 z-50 w-full rounded-xl border border-black/10 bg-surface p-1.5 shadow-soft dark:border-white/10">
