@@ -63,6 +63,18 @@ export function AdminDashboardPage() {
   const [deleteId, setDeleteId] = useState('')
   const [deleteStatus, setDeleteStatus] = useState('')
   const navigate = useNavigate()
+  const lightSectionStyle = !isDark
+    ? {
+        backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.6) 35%, rgba(255,255,255,0.4) 100%)',
+        backgroundColor: 'var(--surface)'
+      }
+    : undefined
+  const lightCardStyle = !isDark
+    ? {
+        backgroundImage: 'linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0.7) 35%, rgba(255,255,255,0.5) 100%)',
+        backgroundColor: 'var(--surface)'
+      }
+    : undefined
 
   const toggleTheme = () => {
     setIsDark((prev) => {
@@ -226,78 +238,123 @@ export function AdminDashboardPage() {
           {loading && !summary ? <p className="mt-3 text-xs text-muted">Cargando...</p> : null}
 
           {totals ? (
-            <div className="mt-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-xl border border-card/40 bg-surface p-3 text-center">
-                <p className="text-[10px] text-muted">Usuarios</p>
+            <div className="mt-4 grid gap-2 grid-cols-3 sm:grid-cols-3 lg:grid-cols-6">
+              <div
+                style={lightCardStyle}
+                className="min-h-[72px] rounded-xl border border-card/50 bg-card/60 p-2 text-center shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] flex flex-col items-center justify-center gap-1 dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+              >
+                <p className="text-[10px] leading-tight text-muted">Usuarios</p>
                 <p className="text-lg font-semibold">{totals.totalUsers}</p>
               </div>
-              <div className="rounded-xl border border-card/40 bg-surface p-3 text-center">
-                <p className="text-[10px] text-muted">Perfil empresa</p>
+              <div
+                style={lightCardStyle}
+                className="min-h-[72px] rounded-xl border border-card/50 bg-card/60 p-2 text-center shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] flex flex-col items-center justify-center gap-1 dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+              >
+                <p className="text-[10px] leading-tight text-muted">Perfil empresa</p>
                 <p className="text-lg font-semibold">{totals.businessUsers}</p>
               </div>
-              <div className="rounded-xl border border-card/40 bg-surface p-3 text-center">
-                <p className="text-[10px] text-muted">Perfil personal</p>
+              <div
+                style={lightCardStyle}
+                className="min-h-[72px] rounded-xl border border-card/50 bg-card/60 p-2 text-center shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] flex flex-col items-center justify-center gap-1 dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+              >
+                <p className="text-[10px] leading-tight text-muted">Perfil personal</p>
                 <p className="text-lg font-semibold">{totals.personalUsers}</p>
               </div>
-              <div className="rounded-xl border border-card/40 bg-surface p-3 text-center">
-                <p className="text-[10px] text-muted">Publicaciones</p>
+              <div
+                style={lightCardStyle}
+                className="min-h-[72px] rounded-xl border border-card/50 bg-card/60 p-2 text-center shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] flex flex-col items-center justify-center gap-1 dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+              >
+                <p className="text-[10px] leading-tight text-muted">Publicaciones</p>
                 <p className="text-lg font-semibold">{totals.totalPublications}</p>
               </div>
-              <div className="rounded-xl border border-card/40 bg-surface p-3 text-center">
-                <p className="text-[10px] text-muted">Activas</p>
+              <div
+                style={lightCardStyle}
+                className="min-h-[72px] rounded-xl border border-card/50 bg-card/60 p-2 text-center shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] flex flex-col items-center justify-center gap-1 dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+              >
+                <p className="text-[10px] leading-tight text-muted">Activas</p>
                 <p className="text-lg font-semibold">{totals.activePublications}</p>
               </div>
-              <div className="rounded-xl border border-card/40 bg-surface p-3 text-center">
-                <p className="text-[10px] text-muted">Vistas</p>
+              <div
+                style={lightCardStyle}
+                className="min-h-[72px] rounded-xl border border-card/50 bg-card/60 p-2 text-center shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] flex flex-col items-center justify-center gap-1 dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+              >
+                <p className="text-[10px] leading-tight text-muted">Vistas</p>
                 <p className="text-lg font-semibold">{totals.totalViews}</p>
               </div>
-              <div className="rounded-xl border border-card/40 bg-surface p-3 text-center">
-                <p className="text-[10px] text-muted">Favoritos</p>
+              <div
+                style={lightCardStyle}
+                className="min-h-[72px] rounded-xl border border-card/50 bg-card/60 p-2 text-center shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] flex flex-col items-center justify-center gap-1 dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+              >
+                <p className="text-[10px] leading-tight text-muted">Favoritos</p>
                 <p className="text-lg font-semibold">{totals.totalLikes}</p>
               </div>
-              <div className="rounded-xl border border-card/40 bg-surface p-3 text-center">
-                <p className="text-[10px] text-muted">Compartidos</p>
+              <div
+                style={lightCardStyle}
+                className="min-h-[72px] rounded-xl border border-card/50 bg-card/60 p-2 text-center shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] flex flex-col items-center justify-center gap-1 dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+              >
+                <p className="text-[10px] leading-tight text-muted">Compartidos</p>
                 <p className="text-lg font-semibold">{totals.totalShares}</p>
               </div>
-              <div className="rounded-xl border border-card/40 bg-surface p-3 text-center">
-                <p className="text-[10px] text-muted">WhatsApp</p>
+              <div
+                style={lightCardStyle}
+                className="min-h-[72px] rounded-xl border border-card/50 bg-card/60 p-2 text-center shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] flex flex-col items-center justify-center gap-1 dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+              >
+                <p className="text-[10px] leading-tight text-muted">WhatsApp</p>
                 <p className="text-lg font-semibold">{totals.totalWhatsappClicks}</p>
               </div>
             </div>
           ) : null}
 
           <div className="mt-4 grid gap-4 lg:grid-cols-2">
-            <div className="rounded-2xl border border-card/40 bg-surface p-4">
+            <div
+              style={lightSectionStyle}
+              className="rounded-2xl border border-card/50 bg-card/60 p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+            >
               <h2 className="text-sm font-semibold">Publicaciones últimos 14 días</h2>
               <div className="mt-3">
                 <Line data={timelineData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
               </div>
             </div>
-            <div className="rounded-2xl border border-card/40 bg-surface p-4">
+            <div
+              style={lightSectionStyle}
+              className="rounded-2xl border border-card/50 bg-card/60 p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+            >
               <h2 className="text-sm font-semibold">Publicaciones por categoría</h2>
               <div className="mt-3">
                 <Bar data={categoriesData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
               </div>
             </div>
-            <div className="rounded-2xl border border-card/40 bg-surface p-4">
+            <div
+              style={lightSectionStyle}
+              className="rounded-2xl border border-card/50 bg-card/60 p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+            >
               <h2 className="text-sm font-semibold">Publicaciones por país</h2>
               <div className="mt-3">
                 <Bar data={countriesData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
               </div>
             </div>
-            <div className="rounded-2xl border border-card/40 bg-surface p-4">
+            <div
+              style={lightSectionStyle}
+              className="rounded-2xl border border-card/50 bg-card/60 p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+            >
               <h2 className="text-sm font-semibold">Usuarios por país</h2>
               <div className="mt-3">
                 <Bar data={userCountriesData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
               </div>
             </div>
-            <div className="rounded-2xl border border-card/40 bg-surface p-4">
+            <div
+              style={lightSectionStyle}
+              className="rounded-2xl border border-card/50 bg-card/60 p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+            >
               <h2 className="text-sm font-semibold">Compartidos por país</h2>
               <div className="mt-3">
                 <Bar data={shareCountriesData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
               </div>
             </div>
-            <div className="rounded-2xl border border-card/40 bg-surface p-4">
+            <div
+              style={lightSectionStyle}
+              className="rounded-2xl border border-card/50 bg-card/60 p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+            >
               <h2 className="text-sm font-semibold">WhatsApp por país</h2>
               <div className="mt-3">
                 <Bar data={whatsappCountriesData} options={{ responsive: true, plugins: { legend: { display: false } } }} />
@@ -305,7 +362,10 @@ export function AdminDashboardPage() {
             </div>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-card/40 bg-surface p-4">
+          <div
+            style={lightSectionStyle}
+            className="mt-4 rounded-2xl border border-card/50 bg-card/60 p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+          >
             <h2 className="text-sm font-semibold">Top usuarios por actividad</h2>
             <div className="mt-3 overflow-auto">
               <table className="w-full text-xs">
