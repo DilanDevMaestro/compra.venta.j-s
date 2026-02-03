@@ -60,6 +60,8 @@ export function PerfilPage() {
     activo?: boolean
     imagenes?: Array<{ url?: string }>
     descuento?: number | string
+    shareCount?: number
+    whatsappClicks?: number
   }
   const [publications, setPublications] = useState<PubItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -109,8 +111,10 @@ export function PerfilPage() {
       if (typeof p.likes === 'number') return sum + p.likes
       return sum
     }, 0)
+    const totalShares = publications.reduce((sum, p) => sum + (p.shareCount || 0), 0)
+    const totalWhatsappClicks = publications.reduce((sum, p) => sum + (p.whatsappClicks || 0), 0)
     const activePublications = publications.filter((p) => p.activo === true).length
-    return { totalPublications, totalViews, totalLikes, activePublications }
+    return { totalPublications, totalViews, totalLikes, activePublications, totalShares, totalWhatsappClicks }
   }, [publications])
 
   useEffect(() => {
@@ -422,7 +426,7 @@ export function PerfilPage() {
           <div className="mt-5">
             <div
               style={lightCardStyle}
-              className="hidden w-full items-center justify-between gap-4 rounded-xl border border-card/50 bg-card/60 px-4 py-2 text-[11px] text-muted shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] sm:flex dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+              className="hidden w-full flex-wrap items-center justify-between gap-4 rounded-xl border border-card/50 bg-card/60 px-4 py-2 text-[11px] text-muted shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] sm:flex dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
             >
               <div className="flex items-center gap-2">
                 <span className="uppercase tracking-widest">Publicaciones</span>
@@ -439,6 +443,14 @@ export function PerfilPage() {
               <div className="flex items-center gap-2">
                 <span className="uppercase tracking-widest">Favoritos</span>
                 <span className="text-base font-semibold text-foreground">{stats.totalLikes}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="uppercase tracking-widest">Compartidos</span>
+                <span className="text-base font-semibold text-foreground">{stats.totalShares}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="uppercase tracking-widest">WhatsApp</span>
+                <span className="text-base font-semibold text-foreground">{stats.totalWhatsappClicks}</span>
               </div>
             </div>
 
@@ -470,6 +482,20 @@ export function PerfilPage() {
               >
                 <p className="text-[10px] leading-tight text-muted">Favoritos</p>
                 <p className="text-lg font-semibold">{stats.totalLikes}</p>
+              </div>
+              <div
+                style={lightCardStyle}
+                className="min-h-[64px] rounded-xl border border-card/50 bg-card/60 p-2 text-center shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] flex flex-col items-center justify-center gap-1 dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+              >
+                <p className="text-[10px] leading-tight text-muted">Compartidos</p>
+                <p className="text-lg font-semibold">{stats.totalShares}</p>
+              </div>
+              <div
+                style={lightCardStyle}
+                className="min-h-[64px] rounded-xl border border-card/50 bg-card/60 p-2 text-center shadow-[0_12px_30px_-22px_rgba(0,0,0,0.55)] flex flex-col items-center justify-center gap-1 dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+              >
+                <p className="text-[10px] leading-tight text-muted">WhatsApp</p>
+                <p className="text-lg font-semibold">{stats.totalWhatsappClicks}</p>
               </div>
             </div>
           </div>
