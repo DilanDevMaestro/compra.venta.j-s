@@ -1,4 +1,5 @@
 import { config } from '../config/config'
+import storage from './storage'
 
 export const loginWithGoogle = (): void => {
   window.location.href = `${config.API_URL}/auth/google`
@@ -18,7 +19,7 @@ export const handleAuthCallback = async (token: string): Promise<boolean> => {
 
     const data = await response.json()
     if (data.user) {
-      localStorage.setItem('user', JSON.stringify(data.user))
+      storage.setUser(data.user)
       return true
     }
 
@@ -35,7 +36,7 @@ export const fetchUserData = async (): Promise<Record<string, unknown> | null> =
     const response = await fetch(`${config.API_URL}/auth/user`, { credentials: 'include' })
     if (!response.ok) return null
     const userData = await response.json()
-    localStorage.setItem('user', JSON.stringify(userData))
+    storage.setUser(userData)
     return userData
   } catch (e) {
     console.error('fetchUserData error', e)
