@@ -176,6 +176,17 @@ export const publicationsApi = {
     return handleResponse(response)
   },
 
+  getByLocation: async (params: { country?: string; province?: string; city?: string; limit?: number }) => {
+    const search = new URLSearchParams()
+    if (params.country) search.set('country', params.country)
+    if (params.province) search.set('province', params.province)
+    if (params.city) search.set('city', params.city)
+    if (params.limit) search.set('limit', String(params.limit))
+    const suffix = search.toString() ? `?${search.toString()}` : ''
+    const response = await fetch(`${config.API_URL}/publications/location${suffix}`, fetchConfig)
+    return handleResponse(response)
+  },
+
   getById: async (id: string) => {
     const response = await fetch(`${config.API_URL}/publications/${id}`, fetchConfig)
     return handleResponse(response)
