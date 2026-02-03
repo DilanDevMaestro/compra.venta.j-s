@@ -247,6 +247,22 @@ export const publicationsApi = {
     return handleResponse(response)
   },
 
+  incrementShare: async (id: string) => {
+    const response = await fetch(`${config.API_URL}/publications/${id}/share`, {
+      method: 'POST',
+      ...fetchConfig
+    })
+    return handleResponse(response)
+  },
+
+  incrementWhatsappClick: async (id: string) => {
+    const response = await fetch(`${config.API_URL}/publications/${id}/whatsapp-click`, {
+      method: 'POST',
+      ...fetchConfig
+    })
+    return handleResponse(response)
+  },
+
   incrementViews: async (id: string) => {
     const response = await fetch(`${config.API_URL}/publications/${id}/view`, {
       method: 'POST',
