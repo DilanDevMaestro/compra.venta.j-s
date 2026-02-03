@@ -64,6 +64,14 @@ export function AdminDashboardPage() {
   const [deleteStatus, setDeleteStatus] = useState('')
   const [adminEmail, setAdminEmail] = useState('')
   const [adminStatus, setAdminStatus] = useState('')
+  const [showBannerModal, setShowBannerModal] = useState(false)
+  const [bannerFile, setBannerFile] = useState<File | null>(null)
+  const [bannerPreview, setBannerPreview] = useState('')
+  const [bannerStatus, setBannerStatus] = useState('')
+  const [bannerButtonEnabled, setBannerButtonEnabled] = useState(false)
+  const [bannerButtonText, setBannerButtonText] = useState('')
+  const [bannerButtonUrl, setBannerButtonUrl] = useState('')
+  const [bannerButtonPosition, setBannerButtonPosition] = useState<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right')
   const navigate = useNavigate()
   const lightSectionStyle = !isDark
     ? {
@@ -240,6 +248,64 @@ export function AdminDashboardPage() {
     }
   }
 
+  const handleOpenBanner = () => {
+    setBannerStatus('')
+    setShowBannerModal(true)
+  }
+
+  const handleCloseBanner = () => {
+    setShowBannerModal(false)
+  }
+
+  const handleBannerFileChange = (file?: File | null) => {
+    if (!file) {
+      setBannerFile(null)
+      setBannerPreview('')
+      return
+    }
+    setBannerFile(file)
+    const previewUrl = URL.createObjectURL(file)
+    setBannerPreview(previewUrl)
+  }
+
+  const handleUploadBanner = async () => {
+    if (!bannerFile) {
+      setBannerStatus('Seleccioná una imagen.')
+      return
+    }
+    if (bannerButtonEnabled && (!bannerButtonText.trim() || !bannerButtonUrl.trim())) {
+      setBannerStatus('Completa texto y link del botón o desactívalo.')
+      return
+    }
+
+    const formData = new FormData()
+    formData.append('image', bannerFile)
+    if (bannerButtonEnabled) {
+      formData.append('buttonText', bannerButtonText.trim())
+      formData.append('buttonUrl', bannerButtonUrl.trim())
+      formData.append('buttonPosition', bannerButtonPosition)
+    } else {
+      formData.append('buttonText', '')
+      formData.append('buttonUrl', '')
+      formData.append('buttonPosition', bannerButtonPosition)
+    }
+
+    setBannerStatus('')
+    try {
+      await adminApi.uploadBanner(formData)
+      setBannerStatus('Banner actualizado.')
+      setBannerFile(null)
+      setBannerPreview('')
+      setBannerButtonEnabled(false)
+      setBannerButtonText('')
+      setBannerButtonUrl('')
+      setBannerButtonPosition('bottom-right')
+    } catch (error) {
+      console.error('Error subiendo banner:', error)
+      setBannerStatus('No se pudo subir el banner.')
+    }
+  }
+
   return (
     <div className={isDark ? 'dark' : ''}>
       <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -250,10 +316,10 @@ export function AdminDashboardPage() {
             <p className="text-xs text-muted">Actualización automática cada 15 segundos.</p>
           </div>
 
-          <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-start">
+          <div className="mt-4 grid gap-3 lg:grid-cols-3">
             <div
               style={lightSectionStyle}
-              className="w-full rounded-2xl border border-card/50 bg-card/60 p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)] lg:max-w-md"
+              className="w-full rounded-2xl border border-card/50 bg-card/60 p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
             >
               <h2 className="text-sm font-semibold">Eliminar publicación por ID</h2>
               <div className="mt-3 flex flex-col gap-2">
@@ -275,7 +341,7 @@ export function AdminDashboardPage() {
 
             <div
               style={lightSectionStyle}
-              className="w-full rounded-2xl border border-card/50 bg-card/60 p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)] lg:max-w-md"
+              className="w-full rounded-2xl border border-card/50 bg-card/60 p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
             >
               <h2 className="text-sm font-semibold">Agregar admin por correo</h2>
               <div className="mt-3 flex flex-col gap-2">
@@ -293,6 +359,23 @@ export function AdminDashboardPage() {
                 </button>
               </div>
               {adminStatus ? <p className="mt-2 text-xs text-muted">{adminStatus}</p> : null}
+            </div>
+
+            <div
+              style={lightSectionStyle}
+              className="w-full rounded-2xl border border-card/50 bg-card/60 p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+            >
+              <h2 className="text-sm font-semibold">Subir banner</h2>
+              <p className="mt-1 text-[11px] text-muted">Se muestra en el Home.</p>
+              <div className="mt-3">
+                <button
+                  onClick={handleOpenBanner}
+                  className="w-full rounded-lg border border-primary/20 bg-primary/10 px-4 py-2 text-xs font-semibold text-primary"
+                >
+                  Subir banner
+                </button>
+              </div>
+              {bannerStatus ? <p className="mt-2 text-xs text-muted">{bannerStatus}</p> : null}
             </div>
           </div>
 
@@ -460,6 +543,86 @@ export function AdminDashboardPage() {
         </main>
         <Footer />
       </div>
+
+      {showBannerModal ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-md rounded-2xl border border-card/40 bg-background p-4 shadow-xl">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold">Subir banner</h3>
+              <button onClick={handleCloseBanner} className="text-xs text-muted">Cerrar</button>
+            </div>
+
+            <div className="mt-3 flex flex-col gap-3">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={(event) => handleBannerFileChange(event.target.files?.[0])}
+                className="w-full text-xs"
+              />
+
+              {bannerPreview ? (
+                <div className="overflow-hidden rounded-xl border border-card/40">
+                  <img src={bannerPreview} alt="Preview banner" className="h-32 w-full object-cover" />
+                </div>
+              ) : null}
+
+              <label className="flex items-center gap-2 text-xs text-muted">
+                <input
+                  type="checkbox"
+                  checked={bannerButtonEnabled}
+                  onChange={(event) => setBannerButtonEnabled(event.target.checked)}
+                />
+                Mostrar botón
+              </label>
+
+              {bannerButtonEnabled ? (
+                <div className="flex flex-col gap-2">
+                  <input
+                    value={bannerButtonText}
+                    onChange={(event) => setBannerButtonText(event.target.value)}
+                    placeholder="Texto del botón"
+                    className="w-full rounded-lg border border-card/40 bg-background px-3 py-2 text-xs"
+                  />
+                  <input
+                    value={bannerButtonUrl}
+                    onChange={(event) => setBannerButtonUrl(event.target.value)}
+                    placeholder="Link del botón"
+                    className="w-full rounded-lg border border-card/40 bg-background px-3 py-2 text-xs"
+                  />
+                  <select
+                    value={bannerButtonPosition}
+                    onChange={(event) => setBannerButtonPosition(event.target.value as typeof bannerButtonPosition)}
+                    className="w-full rounded-lg border border-card/40 bg-background px-3 py-2 text-xs"
+                  >
+                    <option value="top-left">Esquina superior izquierda</option>
+                    <option value="top-right">Esquina superior derecha</option>
+                    <option value="bottom-left">Esquina inferior izquierda</option>
+                    <option value="bottom-right">Esquina inferior derecha</option>
+                  </select>
+                </div>
+              ) : (
+                <div className="text-[11px] text-muted">El botón es opcional.</div>
+              )}
+
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={handleUploadBanner}
+                  className="flex-1 rounded-lg border border-primary/20 bg-primary/10 px-4 py-2 text-xs font-semibold text-primary"
+                >
+                  Guardar banner
+                </button>
+                <button
+                  onClick={handleCloseBanner}
+                  className="rounded-lg border border-card/40 bg-surface px-4 py-2 text-xs"
+                >
+                  Cancelar
+                </button>
+              </div>
+              {bannerStatus ? <p className="text-xs text-muted">{bannerStatus}</p> : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
