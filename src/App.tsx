@@ -8,6 +8,7 @@ import { AuthPage } from './pages/AuthPage'
 import { PerfilPage } from './pages/PerfilPage'
 import { DestacadosPage } from './pages/DestacadosPage'
 import { OfertasPage } from './pages/OfertasPage'
+import { LocationPage } from './pages/LocationPage'
 import { LocationRequiredModal } from './components/profile/LocationRequiredModal'
 
 function App() {
@@ -41,6 +42,7 @@ function App() {
         <Route path="/publicacion/:id" element={<PublicationDetailPage />} />
         <Route path="/destacados" element={<DestacadosPage />} />
         <Route path="/ofertas" element={<OfertasPage />} />
+        <Route path="/ubicacion" element={<LocationPage />} />
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/auth/google/callback" element={<AuthPage />} />
         <Route path="/perfil" element={<PerfilPage />} />
