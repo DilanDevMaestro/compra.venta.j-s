@@ -59,6 +59,7 @@ export const storage = {
     try {
       if (!user) {
         localStorage.removeItem(USER_KEY)
+        window.dispatchEvent(new CustomEvent('user:updated', { detail: null }))
         return
       }
       // Sanitize user object: only allow a small whitelist
@@ -89,6 +90,7 @@ export const storage = {
         isAdmin: user?.isAdmin
       }
       localStorage.setItem(USER_KEY, JSON.stringify(safe))
+      window.dispatchEvent(new CustomEvent('user:updated', { detail: safe }))
     } catch (e) {
       console.error('storage.setUser error', e)
     }
@@ -108,6 +110,7 @@ export const storage = {
   removeUser: () => {
     try {
       localStorage.removeItem(USER_KEY)
+      window.dispatchEvent(new CustomEvent('user:updated', { detail: null }))
     } catch (e) {
       console.error('storage.removeUser error', e)
     }

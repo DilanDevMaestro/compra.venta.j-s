@@ -51,7 +51,11 @@ export function ListingSection({
           <button className="text-[10px] font-semibold uppercase tracking-widest text-muted">Ver más</button>
         )}
       </div>
-      {layout === 'scroll' ? (
+      {items.length === 0 ? (
+        <div className="rounded-xl border border-card/40 bg-surface px-3 py-4 text-[11px] text-muted dark:border-slate-700/50">
+          No hay publicaciones para mostrar.
+        </div>
+      ) : layout === 'scroll' ? (
         <div className="relative">
           <button
             onClick={() => handleScroll('left')}
