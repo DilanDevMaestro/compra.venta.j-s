@@ -466,5 +466,19 @@ export const adminApi = {
   grantAdminByEmail: async (email: string) => {
     const response = await authenticatedRequest.post('/admin/users/grant-admin', { email })
     return response.data
+  },
+
+  uploadBanner: async (payload: FormData) => {
+    const response = await authenticatedRequest.post('/admin/banner', payload, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    return response.data
+  }
+}
+
+export const bannerApi = {
+  getActive: async () => {
+    const response = await fetch(`${config.API_URL}/banner`)
+    return handleResponse(response)
   }
 }
