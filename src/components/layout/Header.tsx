@@ -166,7 +166,12 @@ export function Header({ isDark, onToggleTheme }: HeaderProps) {
             </button>
           )}
           <button
-            onClick={onToggleTheme}
+            onClick={() => {
+              const next = !isDark
+              if (next) document.documentElement.classList.add('dark')
+              else document.documentElement.classList.remove('dark')
+              onToggleTheme()
+            }}
             className="rounded-full border border-black/10 px-2.5 py-1.5 text-[10px] uppercase tracking-widest text-muted dark:border-white/10"
           >
             {isDark ? 'Claro' : 'Oscuro'}
