@@ -62,6 +62,8 @@ export function AdminDashboardPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [deleteId, setDeleteId] = useState('')
   const [deleteStatus, setDeleteStatus] = useState('')
+  const [adminEmail, setAdminEmail] = useState('')
+  const [adminStatus, setAdminStatus] = useState('')
   const navigate = useNavigate()
   const lightSectionStyle = !isDark
     ? {
@@ -224,6 +226,20 @@ export function AdminDashboardPage() {
     }
   }
 
+  const handleGrantAdmin = async () => {
+    if (!adminEmail.trim()) return
+    if (!confirm('¿Asignar permisos de admin a este correo?')) return
+    setAdminStatus('')
+    try {
+      await adminApi.grantAdminByEmail(adminEmail.trim())
+      setAdminStatus('Permisos asignados correctamente.')
+      setAdminEmail('')
+    } catch (error) {
+      console.error('Error asignando admin:', error)
+      setAdminStatus('No se pudo asignar admin.')
+    }
+  }
+
   return (
     <div className={isDark ? 'dark' : ''}>
       <div className="min-h-screen bg-background text-foreground flex flex-col">
@@ -232,6 +248,52 @@ export function AdminDashboardPage() {
           <div className="mt-6 flex flex-col gap-2">
             <h1 className="text-lg font-semibold">Dashboard Admin</h1>
             <p className="text-xs text-muted">Actualización automática cada 15 segundos.</p>
+          </div>
+
+          <div className="mt-4 flex flex-col gap-3 lg:flex-row lg:items-start">
+            <div
+              style={lightSectionStyle}
+              className="w-full rounded-2xl border border-card/50 bg-card/60 p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)] lg:max-w-md"
+            >
+              <h2 className="text-sm font-semibold">Eliminar publicación por ID</h2>
+              <div className="mt-3 flex flex-col gap-2">
+                <input
+                  value={deleteId}
+                  onChange={(event) => setDeleteId(event.target.value)}
+                  placeholder="ID de publicación"
+                  className="w-full rounded-lg border border-card/40 bg-background px-3 py-2 text-xs"
+                />
+                <button
+                  onClick={handleDelete}
+                  className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-600"
+                >
+                  Eliminar
+                </button>
+              </div>
+              {deleteStatus ? <p className="mt-2 text-xs text-muted">{deleteStatus}</p> : null}
+            </div>
+
+            <div
+              style={lightSectionStyle}
+              className="w-full rounded-2xl border border-card/50 bg-card/60 p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)] lg:max-w-md"
+            >
+              <h2 className="text-sm font-semibold">Agregar admin por correo</h2>
+              <div className="mt-3 flex flex-col gap-2">
+                <input
+                  value={adminEmail}
+                  onChange={(event) => setAdminEmail(event.target.value)}
+                  placeholder="correo@dominio.com"
+                  className="w-full rounded-lg border border-card/40 bg-background px-3 py-2 text-xs"
+                />
+                <button
+                  onClick={handleGrantAdmin}
+                  className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-xs font-semibold text-emerald-700"
+                >
+                  Agregar admin
+                </button>
+              </div>
+              {adminStatus ? <p className="mt-2 text-xs text-muted">{adminStatus}</p> : null}
+            </div>
           </div>
 
           {errorMessage ? <p className="mt-3 text-xs text-red-500">{errorMessage}</p> : null}
@@ -395,24 +457,6 @@ export function AdminDashboardPage() {
             </div>
           </div>
 
-          <div className="mt-4 rounded-2xl border border-card/40 bg-surface p-4">
-            <h2 className="text-sm font-semibold">Eliminar publicación por ID</h2>
-            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-              <input
-                value={deleteId}
-                onChange={(event) => setDeleteId(event.target.value)}
-                placeholder="ID de publicación"
-                className="w-full rounded-lg border border-card/40 bg-background px-3 py-2 text-xs"
-              />
-              <button
-                onClick={handleDelete}
-                className="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-xs font-semibold text-red-600"
-              >
-                Eliminar
-              </button>
-            </div>
-            {deleteStatus ? <p className="mt-2 text-xs text-muted">{deleteStatus}</p> : null}
-          </div>
         </main>
         <Footer />
       </div>
