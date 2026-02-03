@@ -11,9 +11,9 @@ type HeaderProps = {
 }
 
 export function Header({ isDark, onToggleTheme }: HeaderProps) {
-  const [user, setUser] = useState<{ name?: string; picture?: string } | null>(() => {
+  const [user, setUser] = useState<{ name?: string; picture?: string; isAdmin?: boolean } | null>(() => {
     try {
-      return (storage.getUser() as { name?: string; picture?: string } | null) ?? null
+      return (storage.getUser() as { name?: string; picture?: string; isAdmin?: boolean } | null) ?? null
     } catch {
       return null
     }
@@ -59,10 +59,11 @@ export function Header({ isDark, onToggleTheme }: HeaderProps) {
             _id: typeof d._id === 'string' ? (d._id as string) : undefined,
             name: typeof d.name === 'string' ? (d.name as string) : undefined,
             picture: typeof d.picture === 'string' ? (d.picture as string) : undefined,
+            isAdmin: typeof d.isAdmin === 'boolean' ? (d.isAdmin as boolean) : undefined,
             businessProfile: typeof d.businessProfile === 'object' && d.businessProfile !== null ? (d.businessProfile as Record<string, unknown>) : undefined
           }
           storage.setUser(safeUser)
-          Promise.resolve().then(() => setUser({ name: safeUser.name, picture: safeUser.picture }))
+          Promise.resolve().then(() => setUser({ name: safeUser.name, picture: safeUser.picture, isAdmin: safeUser.isAdmin }))
         }
       } catch {
         // ignore
@@ -109,6 +110,14 @@ export function Header({ isDark, onToggleTheme }: HeaderProps) {
               className="rounded-full bg-foreground px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-background"
             >
               Publicar
+            </Link>
+          ) : null}
+          {user?.isAdmin ? (
+            <Link
+              to="/admin"
+              className="rounded-full border border-black/10 bg-surface px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground dark:border-white/10"
+            >
+              Dashboard Admin
             </Link>
           ) : null}
           {user ? (
@@ -277,8 +286,22 @@ export function Header({ isDark, onToggleTheme }: HeaderProps) {
                 </Link>
               ) : null}
 
+              {user?.isAdmin ? (
+                <Link
+                  to="/admin"
+                  onClick={() => setMobileOpen(false)}
+                  className="w-full rounded-lg px-3 py-2 text-left text-sm font-semibold"
+                  style={{ color: isDark ? 'rgba(255,255,255,0.9)' : '#1a1a1a', backgroundColor: isDark ? 'rgba(255,255,255,0.03)' : 'rgba(255,255,255,0.6)', border: isDark ? '1px solid rgba(255,255,255,0.04)' : '1px solid rgba(0,0,0,0.06)' }}
+                >
+                  Dashboard Admin
+                </Link>
+              ) : null}
+
               <button
                 onClick={() => {
+                  const next = !isDark
+                  if (next) document.documentElement.classList.add('dark')
+                  else document.documentElement.classList.remove('dark')
                   onToggleTheme()
                   setMobileOpen(false)
                 }}
