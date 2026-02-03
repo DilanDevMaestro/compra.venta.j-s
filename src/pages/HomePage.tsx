@@ -8,12 +8,12 @@ import { Header } from '../components/layout/Header'
 import { Hero } from '../components/home/Hero'
 import { MarketMarquee } from '../components/home/MarketMarquee'
 import { CategorySidebar } from '../components/home/CategorySidebar'
-import { LocationSidebar } from '../components/home/LocationSidebar'
 import { CategoryModal } from '../components/home/CategoryModal'
 import { ListingSection } from '../components/home/ListingSection'
-import { LocationSection } from '../components/home/LocationSection'
+import { LocationTree } from '../components/home/LocationTree'
 import { Footer } from '../components/layout/Footer'
 import { categoryToSlug, resolveCategoryKey, resolveCategoryName } from '../utils/categories'
+import { detectLocation } from '../services/locationService'
 
 type RawPublication = {
   _id?: string
@@ -60,12 +60,16 @@ export function HomePage() {
   const [timeframe, setTimeframe] = useState<'all' | '12h' | '24h'>('24h')
   const [offers, setOffers] = useState<Listing[]>([])
   const [showCategories, setShowCategories] = useState(false)
-  const [locationLevel, setLocationLevel] = useState<'country' | 'province' | 'city'>('country')
   const [locationCounts, setLocationCounts] = useState<Record<string, LocationItem[]>>({
     country: [],
     province: [],
     city: []
   })
+  const [locationFilter, setLocationFilter] = useState<{
+    country: string
+    province?: string
+    city?: string
+  } | null>(null)
   const navigate = useNavigate()
 
   const categoryIndex = useMemo(() => {
@@ -85,51 +89,111 @@ export function HomePage() {
     ...extra
   }), [])
 
-  const loadHomeData = useCallback(async () => {
-    try {
-      const [recentData, discounted, counts, countryCounts, provinceCounts, cityCounts] = await Promise.all([
-        publicationsApi.getRecent(),
-        publicationsApi.getDiscounted(),
-        publicationsApi.getCategoryCounts(),
-        publicationsApi.getLocationCounts('country', 12),
-        publicationsApi.getLocationCounts('province', 12),
-        publicationsApi.getLocationCounts('city', 12)
-      ])
+  const buildCategoryCounts = useCallback(
+    (list: RawPublication[]) => {
+      const countsByCategory: Record<string, number> = {}
+      list.forEach((pub) => {
+        const key = resolveCategoryKey(String(pub.categoria || ''))
+        if (!key) return
+        countsByCategory[key] = (countsByCategory[key] || 0) + 1
+      })
 
-      if (recentData) {
-        if (recentData?.publications?.length) {
-          setRecent(recentData.publications.map((pub: RawPublication) => toListing(pub)))
-        }
-        if (recentData?.featured?.length) {
-          setFeatured(recentData.featured.map((pub: RawPublication) => toListing(pub, { featured: true })))
-        }
-      }
+      const next = fallbackCategories.map((category) => ({
+        ...category,
+        count: countsByCategory[resolveCategoryKey(category.name)] ?? 0
+      }))
 
-      if (Array.isArray(discounted) && discounted.length) {
-        setOffers(discounted.map((pub: RawPublication) => toListing(pub, { isOffer: true })))
-      }
-
-      if (counts && typeof counts === 'object') {
-        const normalized = Object.fromEntries(
-          Object.entries(counts).map(([name, count]) => [resolveCategoryKey(name), Number(count) || 0])
-        )
-
-        const next = fallbackCategories.map((category) => ({
-          ...category,
-          count: normalized[resolveCategoryKey(category.name)] ?? category.count
+      const extras = Object.entries(countsByCategory)
+        .filter(([name]) => !categoryIndex.has(name))
+        .map(([name, count], index) => ({
+          id: next.length + index + 1,
+          name: resolveCategoryName(name),
+          count,
+          icon: '🧩',
+          subcategories: []
         }))
 
-        const extras = Object.entries(normalized)
-          .filter(([name]) => !categoryIndex.has(name))
-          .map(([name, count], index) => ({
-            id: next.length + index + 1,
-            name: resolveCategoryName(name),
-            count,
-            icon: '🧩',
-            subcategories: []
+      setCategories([...next, ...extras])
+    },
+    [categoryIndex]
+  )
+
+  const loadHomeData = useCallback(async () => {
+    try {
+      const [countryCounts, provinceCounts, cityCounts] = await Promise.all([
+        publicationsApi.getLocationCounts('country', 200),
+        publicationsApi.getLocationCounts('province', 200),
+        publicationsApi.getLocationCounts('city', 200)
+      ])
+
+      if (locationFilter) {
+        const data = await publicationsApi.getByLocation({
+          country: locationFilter.country,
+          province: locationFilter.province,
+          city: locationFilter.city,
+          limit: 500
+        })
+        const list: RawPublication[] = Array.isArray(data) ? data : data?.items || []
+
+        const sortedByCreated = [...list].sort((a, b) =>
+          String(b.createdAt || '').localeCompare(String(a.createdAt || ''))
+        )
+        const recentItems = sortedByCreated.slice(0, 10).map((pub) => toListing(pub))
+        const featuredItems = [...list]
+          .sort((a, b) => Number(b.vistas || 0) - Number(a.vistas || 0))
+          .slice(0, 3)
+          .map((pub) => toListing(pub, { featured: true }))
+        const offersItems = list
+          .filter((pub) => Number(pub.descuento || 0) > 0)
+          .slice(0, 10)
+          .map((pub) => toListing(pub, { isOffer: true }))
+
+        setRecent(recentItems)
+        setFeatured(featuredItems)
+        setOffers(offersItems)
+        buildCategoryCounts(list)
+      } else {
+        const [recentData, discounted, counts] = await Promise.all([
+          publicationsApi.getRecent(),
+          publicationsApi.getDiscounted(),
+          publicationsApi.getCategoryCounts()
+        ])
+
+        if (recentData) {
+          if (recentData?.publications?.length) {
+            setRecent(recentData.publications.map((pub: RawPublication) => toListing(pub)))
+          }
+          if (recentData?.featured?.length) {
+            setFeatured(recentData.featured.map((pub: RawPublication) => toListing(pub, { featured: true })))
+          }
+        }
+
+        if (Array.isArray(discounted) && discounted.length) {
+          setOffers(discounted.map((pub: RawPublication) => toListing(pub, { isOffer: true })))
+        }
+
+        if (counts && typeof counts === 'object') {
+          const normalized = Object.fromEntries(
+            Object.entries(counts).map(([name, count]) => [resolveCategoryKey(name), Number(count) || 0])
+          )
+
+          const next = fallbackCategories.map((category) => ({
+            ...category,
+            count: normalized[resolveCategoryKey(category.name)] ?? category.count
           }))
 
-        setCategories([...next, ...extras])
+          const extras = Object.entries(normalized)
+            .filter(([name]) => !categoryIndex.has(name))
+            .map(([name, count], index) => ({
+              id: next.length + index + 1,
+              name: resolveCategoryName(name),
+              count,
+              icon: '🧩',
+              subcategories: []
+            }))
+
+          setCategories([...next, ...extras])
+        }
       }
 
       if (countryCounts?.items) {
@@ -153,10 +217,12 @@ export function HomePage() {
     } catch (error) {
       console.error('Error loading home data:', error)
     }
-  }, [categoryIndex, toListing])
+  }, [buildCategoryCounts, categoryIndex, locationFilter, toListing])
 
   useEffect(() => {
     void (async () => {
+      // cache location in localStorage for future visits
+      void detectLocation()
       await loadHomeData()
     })()
   }, [loadHomeData])
@@ -165,6 +231,7 @@ export function HomePage() {
   useEffect(() => {
     const fetchRecent = async () => {
       try {
+        if (locationFilter) return
         const hours = timeframe === '12h' ? 12 : timeframe === '24h' ? 24 : undefined
         const recentData = await publicationsApi.getRecent(hours)
         if (recentData) {
@@ -182,7 +249,7 @@ export function HomePage() {
       }
     }
     fetchRecent()
-  }, [timeframe, toListing])
+  }, [locationFilter, timeframe, toListing])
 
   useEffect(() => {
     const eventsUrl = `${config.API_URL}/events`
@@ -239,35 +306,19 @@ export function HomePage() {
                 categories={categories}
                 onSelect={(category) => handleCategorySelect(category.name)}
               />
-              <LocationSidebar
-                title={locationLevel === 'country' ? 'Países' : locationLevel === 'province' ? 'Provincias' : 'Ciudades'}
-                items={locationCounts[locationLevel] || []}
-              />
-              <div className="mt-2 hidden lg:flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setLocationLevel('country')}
-                  className={`whitespace-nowrap text-[10px] px-2 py-0.5 rounded-full border ${locationLevel === 'country' ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted border-card/40'}`}
-                  aria-pressed={locationLevel === 'country'}
-                >
-                  Países
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLocationLevel('province')}
-                  className={`whitespace-nowrap text-[10px] px-2 py-0.5 rounded-full border ${locationLevel === 'province' ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted border-card/40'}`}
-                  aria-pressed={locationLevel === 'province'}
-                >
-                  Provincias
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setLocationLevel('city')}
-                  className={`whitespace-nowrap text-[10px] px-2 py-0.5 rounded-full border ${locationLevel === 'city' ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted border-card/40'}`}
-                  aria-pressed={locationLevel === 'city'}
-                >
-                  Ciudades
-                </button>
+              <div className="mt-3 hidden lg:block">
+                <aside className="w-40 shrink-0">
+                  <LocationTree
+                    title="Países"
+                    countries={locationCounts.country || []}
+                    provinces={locationCounts.province || []}
+                    cities={locationCounts.city || []}
+                    maxHeight="460px"
+                    onSelect={(payload) => {
+                      setLocationFilter(payload)
+                    }}
+                  />
+                </aside>
               </div>
             </div>
             <div className="min-w-0 flex-1">
@@ -281,7 +332,25 @@ export function HomePage() {
                 </button>
               </div>
               <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <h3 className="text-sm font-semibold">Compra y vende sin vueltas</h3>
+                <div className="flex flex-col">
+                  <h3 className="text-sm font-semibold">Compra y vende sin vueltas</h3>
+                  {locationFilter ? (
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted">
+                      <span className="rounded-full border border-card/40 px-2 py-0.5">
+                        {locationFilter.country}
+                        {locationFilter.province ? ` · ${locationFilter.province}` : ''}
+                        {locationFilter.city ? ` · ${locationFilter.city}` : ''}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setLocationFilter(null)}
+                        className="rounded-full border border-card/40 px-2 py-0.5 text-[11px] text-muted hover:text-foreground"
+                      >
+                        Limpiar filtro
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
                 <div className="flex items-center gap-1 overflow-x-auto flex-nowrap">
                   <button
                     type="button"
@@ -310,36 +379,16 @@ export function HomePage() {
                 </div>
               </div>
               <div className="lg:hidden">
-                <LocationSection
-                  title={locationLevel === 'country' ? 'Países' : locationLevel === 'province' ? 'Provincias' : 'Ciudades'}
-                  items={locationCounts[locationLevel] || []}
-                  onSelect={() => undefined}
-                />
-                <div className="mt-2 flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setLocationLevel('country')}
-                    className={`whitespace-nowrap text-[11px] px-2 py-0.5 rounded-full border ${locationLevel === 'country' ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted border-card/40'}`}
-                    aria-pressed={locationLevel === 'country'}
-                  >
-                    Países
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLocationLevel('province')}
-                    className={`whitespace-nowrap text-[11px] px-2 py-0.5 rounded-full border ${locationLevel === 'province' ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted border-card/40'}`}
-                    aria-pressed={locationLevel === 'province'}
-                  >
-                    Provincias
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setLocationLevel('city')}
-                    className={`whitespace-nowrap text-[11px] px-2 py-0.5 rounded-full border ${locationLevel === 'city' ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted border-card/40'}`}
-                    aria-pressed={locationLevel === 'city'}
-                  >
-                    Ciudades
-                  </button>
+                <div className="rounded-2xl border border-card/40 bg-surface p-4 shadow-soft dark:border-slate-700/50 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0.02)_35%,rgba(0,0,0,0.06)_100%)]">
+                  <LocationTree
+                    title="Países"
+                    countries={locationCounts.country || []}
+                    provinces={locationCounts.province || []}
+                    cities={locationCounts.city || []}
+                    onSelect={(payload) => {
+                      setLocationFilter(payload)
+                    }}
+                  />
                 </div>
               </div>
 
