@@ -37,8 +37,20 @@ export function Header({ isDark, onToggleTheme }: HeaderProps) {
         }
       }
     }
+    const handleUserUpdated = (event: Event) => {
+      const detail = (event as CustomEvent<{ name?: string; picture?: string; isAdmin?: boolean } | null>).detail
+      if (detail) {
+        setUser(detail)
+      } else {
+        setUser(null)
+      }
+    }
     window.addEventListener('storage', handleStorage)
-    return () => window.removeEventListener('storage', handleStorage)
+    window.addEventListener('user:updated', handleUserUpdated)
+    return () => {
+      window.removeEventListener('storage', handleStorage)
+      window.removeEventListener('user:updated', handleUserUpdated)
+    }
   }, [])
 
   useEffect(() => {
