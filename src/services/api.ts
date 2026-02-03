@@ -451,3 +451,15 @@ export const authApi = {
     return response.json()
   }
 }
+
+export const adminApi = {
+  getSummary: async () => {
+    const response = await authenticatedRequest.get('/admin/summary')
+    return response.data
+  },
+
+  deletePublicationById: async (id: string) => {
+    const response = await authenticatedRequest.delete(`/admin/publications/${id}`)
+    return response.data
+  }
+}
