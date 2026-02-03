@@ -19,6 +19,7 @@ type SafeUser = {
     profilePicture?: string
     banner?: string
   }
+  isAdmin?: boolean
 }
 
 const TOKEN_KEY = 'token'
@@ -84,7 +85,8 @@ export const storage = {
               profilePicture: user.businessProfile.profilePicture,
               banner: user.businessProfile.banner
             }
-          : undefined
+          : undefined,
+        isAdmin: user?.isAdmin
       }
       localStorage.setItem(USER_KEY, JSON.stringify(safe))
     } catch (e) {
