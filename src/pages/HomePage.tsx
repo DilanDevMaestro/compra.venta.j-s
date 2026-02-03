@@ -11,6 +11,7 @@ import { CategorySidebar } from '../components/home/CategorySidebar'
 import { CategoryModal } from '../components/home/CategoryModal'
 import { ListingSection } from '../components/home/ListingSection'
 import { LocationTree } from '../components/home/LocationTree'
+import { LocationModal } from '../components/home/LocationModal'
 import { Footer } from '../components/layout/Footer'
 import { categoryToSlug, resolveCategoryKey, resolveCategoryName } from '../utils/categories'
 import { detectLocation } from '../services/locationService'
@@ -60,6 +61,7 @@ export function HomePage() {
   const [timeframe, setTimeframe] = useState<'all' | '12h' | '24h'>('24h')
   const [offers, setOffers] = useState<Listing[]>([])
   const [showCategories, setShowCategories] = useState(false)
+  const [showLocations, setShowLocations] = useState(false)
   const [locationCounts, setLocationCounts] = useState<Record<string, LocationItem[]>>({
     country: [],
     province: [],
@@ -322,13 +324,20 @@ export function HomePage() {
               </div>
             </div>
             <div className="min-w-0 flex-1">
-              <div className="mb-4 lg:hidden">
+              <div className="mb-4 flex flex-wrap gap-2 lg:hidden">
                 <button
                   onClick={() => setShowCategories(true)}
                   className="inline-flex w-auto rounded-xl border bg-surface px-3 py-2 text-left text-[12px] font-semibold uppercase tracking-widest text-muted dark:border-white/10"
                   style={isDark ? undefined : { borderColor: 'rgba(0,0,0,0.18)' }}
                 >
                   Ver categorías
+                </button>
+                <button
+                  onClick={() => setShowLocations(true)}
+                  className="inline-flex w-auto rounded-xl border bg-surface px-3 py-2 text-left text-[12px] font-semibold uppercase tracking-widest text-muted dark:border-white/10"
+                  style={isDark ? undefined : { borderColor: 'rgba(0,0,0,0.18)' }}
+                >
+                  Ver región
                 </button>
               </div>
               <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -378,19 +387,7 @@ export function HomePage() {
                   </button>
                 </div>
               </div>
-              <div className="lg:hidden">
-                <div className="rounded-2xl border border-card/40 bg-surface p-4 shadow-soft dark:border-slate-700/50 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.03)_0%,rgba(255,255,255,0.02)_35%,rgba(0,0,0,0.06)_100%)]">
-                  <LocationTree
-                    title="Países"
-                    countries={locationCounts.country || []}
-                    provinces={locationCounts.province || []}
-                    cities={locationCounts.city || []}
-                    onSelect={(payload) => {
-                      setLocationFilter(payload)
-                    }}
-                  />
-                </div>
-              </div>
+              <div className="lg:hidden" />
 
               <ListingSection
                 title="Recientes"
@@ -412,6 +409,17 @@ export function HomePage() {
         onSelect={(category) => {
           setShowCategories(false)
           handleCategorySelect(category.name)
+        }}
+      />
+      <LocationModal
+        open={showLocations}
+        countries={locationCounts.country || []}
+        provinces={locationCounts.province || []}
+        cities={locationCounts.city || []}
+        onClose={() => setShowLocations(false)}
+        onSelect={(payload) => {
+          setShowLocations(false)
+          setLocationFilter(payload)
         }}
       />
     </div>
