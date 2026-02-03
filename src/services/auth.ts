@@ -19,6 +19,7 @@ export const handleAuthCallback = async (token: string): Promise<boolean> => {
 
     const data = await response.json()
     if (data.user) {
+      if (data.token) storage.setToken(data.token)
       storage.setUser(data.user)
       return true
     }
@@ -33,7 +34,18 @@ export const handleAuthCallback = async (token: string): Promise<boolean> => {
 // Fetch user data using cookie-backed auth (no token in header)
 export const fetchUserData = async (): Promise<Record<string, unknown> | null> => {
   try {
+    const token = storage.getToken()
     const response = await fetch(`${config.API_URL}/auth/user`, { credentials: 'include' })
+    if (!response.ok && token) {
+      const retry = await fetch(`${config.API_URL}/auth/user`, {
+        credentials: 'include',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!retry.ok) return null
+      const userData = await retry.json()
+      storage.setUser(userData)
+      return userData
+    }
     if (!response.ok) return null
     const userData = await response.json()
     storage.setUser(userData)
@@ -46,7 +58,16 @@ export const fetchUserData = async (): Promise<Record<string, unknown> | null> =
 
 export const checkAuthStatus = async (): Promise<Record<string, unknown> | null> => {
   try {
+    const token = storage.getToken()
     const response = await fetch(`${config.API_URL}/auth/user`, { credentials: 'include' })
+    if (!response.ok && token) {
+      const retry = await fetch(`${config.API_URL}/auth/user`, {
+        credentials: 'include',
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!retry.ok) return null
+      return retry.json()
+    }
     if (!response.ok) return null
     return response.json()
   } catch (e) {
