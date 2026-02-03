@@ -461,5 +461,10 @@ export const adminApi = {
   deletePublicationById: async (id: string) => {
     const response = await authenticatedRequest.delete(`/admin/publications/${id}`)
     return response.data
+  },
+
+  grantAdminByEmail: async (email: string) => {
+    const response = await authenticatedRequest.post('/admin/users/grant-admin', { email })
+    return response.data
   }
 }
