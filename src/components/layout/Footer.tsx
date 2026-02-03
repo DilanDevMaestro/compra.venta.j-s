@@ -1,6 +1,9 @@
 export function Footer() {
   return (
-    <footer className="border-t border-black/10 bg-surface dark:border-white/10">
+    <footer
+      className="border-t border-black/10 dark:border-white/10"
+      style={{ backgroundColor: 'rgba(217,207,193,0.86)' }}
+    >
       <div className="mx-auto flex max-w-6xl flex-col gap-4 px-4 py-10 text-sm text-muted items-center text-center md:flex-row md:items-center md:justify-between md:text-left">
         <div className="flex flex-col items-start gap-2">
           <a href="/" aria-label="Inicio">
