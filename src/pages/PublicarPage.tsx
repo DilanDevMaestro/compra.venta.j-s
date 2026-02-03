@@ -7,6 +7,7 @@ import { Header } from '../components/layout/Header'
 import { Footer } from '../components/layout/Footer'
 import { publicationsApi } from '../services/api'
 import { categoryToSlug } from '../utils/categories'
+import { detectLocation, type LocationData } from '../services/locationService'
 
 const estados = [
   { value: 'nuevo', label: 'Nuevo' },
@@ -53,6 +54,7 @@ export function PublicarPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [locationData, setLocationData] = useState<LocationData | null>(null)
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -127,6 +129,17 @@ export function PublicarPage() {
     })()
   }, [location.search])
 
+  useEffect(() => {
+    let alive = true
+    void (async () => {
+      const data = await detectLocation()
+      if (alive && data) setLocationData(data)
+    })()
+    return () => {
+      alive = false
+    }
+  }, [])
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     setError('')
@@ -152,6 +165,13 @@ export function PublicarPage() {
       if (descuento) formData.append('descuento', descuento)
       formData.append('descripcion', descripcion)
       formData.append('whatsapp', whatsapp)
+      if (locationData?.country) formData.append('pais', locationData.country)
+      if (locationData?.countryCode) formData.append('paisCodigo', locationData.countryCode)
+      if (locationData?.region) formData.append('provincia', locationData.region)
+      if (locationData?.city) formData.append('ciudad', locationData.city)
+      if (locationData?.postalCode) formData.append('codigoPostal', locationData.postalCode)
+      if (locationData?.lat !== undefined) formData.append('lat', String(locationData.lat))
+      if (locationData?.lng !== undefined) formData.append('lng', String(locationData.lng))
       imagenes.forEach((file) => formData.append('imagenes', file))
 
       if (isEditMode) {
@@ -165,6 +185,13 @@ export function PublicarPage() {
           descripcion,
           whatsapp
         }
+        if (locationData?.country) updateData.pais = locationData.country
+        if (locationData?.countryCode) updateData.paisCodigo = locationData.countryCode
+        if (locationData?.region) updateData.provincia = locationData.region
+        if (locationData?.city) updateData.ciudad = locationData.city
+        if (locationData?.postalCode) updateData.codigoPostal = locationData.postalCode
+        if (locationData?.lat !== undefined) updateData.lat = locationData.lat
+        if (locationData?.lng !== undefined) updateData.lng = locationData.lng
         if (precioOriginal) updateData.precioOriginal = Number(precioOriginal)
         if (descuento) updateData.descuento = Number(descuento)
         await publicationsApi.update(isEditMode, updateData)
