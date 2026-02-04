@@ -487,11 +487,29 @@ export const adminApi = {
     })
     return response.data
   }
+  ,
+  getBanners: async () => {
+    const response = await authenticatedRequest.get('/admin/banner/list')
+    return response.data
+  },
+  deleteBanner: async (id: string) => {
+    const response = await authenticatedRequest.delete(`/admin/banner/${id}`)
+    return response.data
+  },
+  toggleBannerActive: async (id: string) => {
+    const response = await authenticatedRequest.patch(`/admin/banner/${id}/toggle-active`)
+    return response.data
+  }
 }
 
 export const bannerApi = {
   getActive: async () => {
     const response = await fetch(`${config.API_URL}/banner`)
+    return handleResponse(response)
+  }
+  ,
+  getList: async () => {
+    const response = await fetch(`${config.API_URL}/banner/list`)
     return handleResponse(response)
   }
 }

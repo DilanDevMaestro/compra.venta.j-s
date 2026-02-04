@@ -32,13 +32,7 @@ type RawPublication = {
 }
 
 type LocationItem = { name: string; count: number; country?: string; province?: string }
-type BannerPayload = {
-  active: boolean
-  imageUrl?: string
-  buttonText?: string
-  buttonUrl?: string
-  buttonPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
-}
+// BannerPayload removed — admin banners are fetched as a list and passed to `Hero`
 
 export function HomePage() {
   const [isDark, setIsDark] = useState<boolean>(() => {
@@ -79,7 +73,12 @@ export function HomePage() {
     province?: string
     city?: string
   } | null>(null)
-  const [banner, setBanner] = useState<BannerPayload | null>(null)
+  const [adminBanners, setAdminBanners] = useState<Array<{
+    imageUrl: string
+    buttonText?: string
+    buttonUrl?: string
+    buttonPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+  }>>([])
   const navigate = useNavigate()
 
   const categoryIndex = useMemo(() => {
@@ -238,20 +237,29 @@ export function HomePage() {
   }, [loadHomeData])
 
   useEffect(() => {
-    const loadBanner = async () => {
+    const loadAdminBanners = async () => {
       try {
-        const data = (await bannerApi.getActive()) as BannerPayload
-        if (data?.active) {
-          setBanner(data)
+        const data = await bannerApi.getList()
+        const items = data?.items || []
+        if (Array.isArray(items) && items.length) {
+          setAdminBanners(items)
         } else {
-          setBanner(null)
+          setAdminBanners([])
         }
       } catch (error) {
-        console.error('Error loading banner:', error)
+        console.error('Error loading admin banners:', error)
+        setAdminBanners([])
       }
     }
 
-    loadBanner()
+    loadAdminBanners()
+    const onUpdate = () => {
+      void loadAdminBanners()
+    }
+    window.addEventListener('banners:updated', onUpdate)
+    return () => {
+      window.removeEventListener('banners:updated', onUpdate)
+    }
   }, [])
 
   // Refetch recent publications when timeframe changes (or on mount)
@@ -325,37 +333,8 @@ export function HomePage() {
       <div className="min-h-screen bg-background text-foreground flex flex-col">
         <Header isDark={isDark} onToggleTheme={toggleTheme} />
         <main className="mx-auto w-full max-w-5xl px-4 pb-12 flex-1">
-          <Hero />
-          {banner?.active && banner.imageUrl ? (
-            <div className="mt-4">
-              <div className="relative overflow-hidden rounded-2xl border border-card/40 bg-surface">
-                <img
-                  src={banner.imageUrl}
-                  alt="Banner"
-                  className="h-36 w-full object-cover sm:h-44"
-                  loading="lazy"
-                />
-                {banner.buttonText && banner.buttonUrl ? (
-                  <a
-                    href={banner.buttonUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className={`absolute z-10 rounded-full border border-white/60 bg-black/60 px-3 py-1 text-[11px] font-semibold text-white shadow-lg backdrop-blur ${
-                      banner.buttonPosition === 'top-left'
-                        ? 'left-3 top-3'
-                        : banner.buttonPosition === 'top-right'
-                        ? 'right-3 top-3'
-                        : banner.buttonPosition === 'bottom-left'
-                        ? 'left-3 bottom-3'
-                        : 'right-3 bottom-3'
-                    }`}
-                  >
-                    {banner.buttonText}
-                  </a>
-                ) : null}
-              </div>
-            </div>
-          ) : null}
+          <Hero adminBanners={adminBanners} />
+          {/* Admin banners are now merged into the Hero carousel; no separate banner container here */}
           <MarketMarquee />
           <div className="mt-4 flex gap-3">
             <div className="flex flex-col">

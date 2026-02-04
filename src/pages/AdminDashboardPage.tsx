@@ -72,6 +72,16 @@ export function AdminDashboardPage() {
   const [bannerButtonText, setBannerButtonText] = useState('')
   const [bannerButtonUrl, setBannerButtonUrl] = useState('')
   const [bannerButtonPosition, setBannerButtonPosition] = useState<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right')
+  const [adminBanners, setAdminBanners] = useState<Array<{
+    id: string
+    imageUrl: string
+    publicId?: string
+    buttonText?: string
+    buttonUrl?: string
+    buttonPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+    isActive?: boolean
+    createdAt?: string
+  }>>([])
   const navigate = useNavigate()
   const lightSectionStyle = !isDark
     ? {
@@ -300,9 +310,60 @@ export function AdminDashboardPage() {
       setBannerButtonText('')
       setBannerButtonUrl('')
       setBannerButtonPosition('bottom-right')
+      // refresh admin banners list and notify home
+      try {
+        const list = (await adminApi.getBanners())?.items || []
+        setAdminBanners(list)
+      } catch (e) {
+        console.warn('No se pudo recargar lista de banners tras upload', e)
+      }
+      window.dispatchEvent(new Event('banners:updated'))
     } catch (error) {
       console.error('Error subiendo banner:', error)
       setBannerStatus('No se pudo subir el banner.')
+    }
+  }
+
+  // load admin banners for management
+  useEffect(() => {
+    let mounted = true
+    const load = async () => {
+      try {
+        const data = (await adminApi.getBanners())?.items || []
+        if (mounted) setAdminBanners(data)
+      } catch (err) {
+        console.error('Error cargando banners admin:', err)
+      }
+    }
+    load()
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const handleToggleBanner = async (id: string) => {
+    if (!confirm('Alternar estado del banner?')) return
+    try {
+      await adminApi.toggleBannerActive(id)
+      const data = (await adminApi.getBanners())?.items || []
+      setAdminBanners(data)
+      window.dispatchEvent(new Event('banners:updated'))
+    } catch (err) {
+      console.error('Error alternando banner:', err)
+      alert('No se pudo cambiar el estado del banner')
+    }
+  }
+
+  const handleDeleteBanner = async (id: string) => {
+    if (!confirm('Eliminar banner permanentemente?')) return
+    try {
+      await adminApi.deleteBanner(id)
+      const data = (await adminApi.getBanners())?.items || []
+      setAdminBanners(data)
+      window.dispatchEvent(new Event('banners:updated'))
+    } catch (err) {
+      console.error('Error eliminando banner:', err)
+      alert('No se pudo eliminar el banner')
     }
   }
 
@@ -314,6 +375,39 @@ export function AdminDashboardPage() {
           <div className="mt-6 flex flex-col gap-2">
             <h1 className="text-lg font-semibold">Dashboard Admin</h1>
             <p className="text-xs text-muted">Actualización automática cada 15 segundos.</p>
+          </div>
+
+          {/* Admin banners management */}
+          <div className="mt-4 rounded-2xl border border-card/50 bg-card/60 p-4">
+            <h2 className="text-sm font-semibold">Gestionar banners</h2>
+            <p className="mt-1 text-[11px] text-muted">Lista de banners subidos por administradores.</p>
+            <div className="mt-3 grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4">
+              {adminBanners.length === 0 ? (
+                <div className="text-sm text-muted">No hay banners cargados.</div>
+              ) : (
+                adminBanners.map((b) => (
+                  <div key={b.id} className="rounded-lg border border-card/40 p-2 bg-background">
+                    <div className="overflow-hidden rounded-md h-28 w-full bg-gray-50">
+                      <img src={b.imageUrl} alt="Banner" className="h-full w-full object-cover" />
+                    </div>
+                    <div className="mt-2 text-xs">
+                      <div className="font-semibold">{b.buttonText || '—'}</div>
+                      <div className="text-muted truncate">{b.buttonUrl || '—'}</div>
+                      <div className="text-muted">Posición: {b.buttonPosition || 'bottom-right'}</div>
+                      <div className="text-muted">Activo: {b.isActive ? 'Sí' : 'No'}</div>
+                    </div>
+                    <div className="mt-2 flex gap-2">
+                      <button onClick={() => handleToggleBanner(b.id)} className="flex-1 rounded-md border px-2 py-1 text-xs">
+                        {b.isActive ? 'Desactivar' : 'Activar'}
+                      </button>
+                      <button onClick={() => handleDeleteBanner(b.id)} className="rounded-md border px-2 py-1 text-xs text-red-600">
+                        Eliminar
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
 
           <div className="mt-4 grid gap-3 lg:grid-cols-3">
