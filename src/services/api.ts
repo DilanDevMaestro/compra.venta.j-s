@@ -402,21 +402,39 @@ export const userApi = {
     postalCode: string
     areaCode?: string
   }) => {
-    const response = await authenticatedRequest.post('/users/update-location', data, {
-      headers: { 'Content-Type': 'application/json' }
-    })
+    try {
+      const response = await authenticatedRequest.post('/users/update-location', data, {
+        headers: { 'Content-Type': 'application/json' }
+      })
 
-    if (response.data?.success) {
-      const currentUser = storage.getUser() || {}
-      const updatedUser = {
-        ...currentUser,
-        locationProfile: response.data.locationProfile,
-        locationComplete: true
+      if (response.data?.success) {
+        const currentUser = storage.getUser() || {}
+        const updatedUser = {
+          ...currentUser,
+          locationProfile: response.data.locationProfile,
+          locationComplete: true
+        }
+        storage.setUser(updatedUser)
       }
-      storage.setUser(updatedUser)
-    }
 
-    return response.data
+      return response.data
+    } catch (error: any) {
+      const status = error?.response?.status
+      const payload = error?.response?.data
+      if (status === 409) {
+        if (payload?.locationProfile) {
+          const currentUser = storage.getUser() || {}
+          const updatedUser = {
+            ...currentUser,
+            locationProfile: payload.locationProfile,
+            locationComplete: true
+          }
+          storage.setUser(updatedUser)
+        }
+        return { success: false, message: payload?.message || 'Ubicación ya configurada' }
+      }
+      throw error
+    }
   },
 
   updateBusinessProfile: async (formData: FormData) => {
