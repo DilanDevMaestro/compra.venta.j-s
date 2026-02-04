@@ -102,7 +102,7 @@ export function LocationRequiredModal() {
 
     try {
       setSaving(true)
-      await userApi.updateLocation({
+      const response = await userApi.updateLocation({
         country,
         countryCode,
         province,
@@ -110,7 +110,11 @@ export function LocationRequiredModal() {
         postalCode,
         areaCode
       })
-      setOpen(false)
+      if (response?.success) {
+        setOpen(false)
+      } else {
+        setError(response?.message || 'No se pudo guardar la ubicación.')
+      }
     } catch {
       setError('No se pudo guardar la ubicación. Intentá nuevamente.')
     } finally {
