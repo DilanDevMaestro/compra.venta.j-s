@@ -14,21 +14,17 @@ type HeroProps = {
 export function Hero({ adminBanners }: HeroProps) {
   const staticImages = useMemo(
     () => [
-      '/image/home-image-banner/JSBANNER.png',
-      '/image/home-image-banner/bisi.webp',
-      '/image/home-image-banner/muebes.webp',
-      '/image/home-image-banner/play.webp',
-      '/image/home-image-banner/zapas.webp'
+      '/image/home-image-banner/JSBANNER.png'
     ],
     []
   )
 
-  // Build combined list: static images first, then admin banners (if any)
+  // Build combined list: admin banners first, then the single default static image
   type CombinedItem = { src: string; banner?: AdminBanner }
   const combined: CombinedItem[] = useMemo(() => {
-    const statics: CombinedItem[] = staticImages.map((src) => ({ src }))
     const admins: CombinedItem[] = (adminBanners || []).map((b) => ({ src: b.imageUrl, banner: b }))
-    return [...statics, ...admins]
+    const statics: CombinedItem[] = staticImages.map((src) => ({ src }))
+    return [...admins, ...statics]
   }, [staticImages, adminBanners])
 
   const [index, setIndex] = useState(0)
