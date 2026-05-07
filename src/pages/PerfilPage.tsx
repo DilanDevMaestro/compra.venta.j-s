@@ -95,6 +95,7 @@ export function PerfilPage() {
   const [pendingBoostId, setPendingBoostId] = useState('')
   const [commerceMsg, setCommerceMsg] = useState('')
   const [lastBoostOrderId, setLastBoostOrderId] = useState('')
+  const [shortcutNotice, setShortcutNotice] = useState('')
   const [formState, setFormState] = useState({
     businessName: '',
     location: '',
@@ -448,6 +449,29 @@ export function PerfilPage() {
     }
   }
 
+  const scrollToPerfilSection = (elementId: string) => {
+    window.requestAnimationFrame(() => {
+      document.getElementById(elementId)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }
+
+  const handleShortcutConsultas = () => {
+    setShortcutNotice('')
+    scrollToPerfilSection('perfil-publicaciones')
+  }
+
+  const handleShortcutImpulsar = () => {
+    setShortcutNotice('')
+    const el = document.getElementById('perfil-impulsar')
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      return
+    }
+    setShortcutNotice(
+      'Para crear pedidos de impulso, quitá VITE_PROFILE_MOCK del front o ponelo en 0 y recargá la página.'
+    )
+  }
+
   // Do not block render based on stored token when using httpOnly cookies.
   // Attempt to load profile via cookie-backed API call instead (handled in useEffect).
 
@@ -580,6 +604,17 @@ export function PerfilPage() {
                 </a>
               ) : null}
             </div>
+            {!isDesignPreview && (user?._id || user?.id) ? (
+              <div className="border-t border-card/40 px-4 py-3 dark:border-slate-700/50">
+                <p className="text-[10px] uppercase tracking-widest text-muted">Tu perfil público</p>
+                <Link
+                  to={`/vendedor/${String(user?._id || user?.id)}`}
+                  className="mt-1 inline-flex text-[12px] font-semibold text-primary underline-offset-2 hover:underline"
+                >
+                  Ver cómo te ven otros (seguir al vendedor)
+                </Link>
+              </div>
+            ) : null}
           </div>
 
           <div className="mt-5">
@@ -826,7 +861,7 @@ export function PerfilPage() {
                   )}
                   {referralMsg ? <p className="text-[11px] text-muted">{referralMsg}</p> : null}
 
-                  <div className="mt-4 border-t border-card/40 pt-3 dark:border-slate-700/50">
+                  <div id="perfil-impulsar" className="mt-4 border-t border-card/40 pt-3 dark:border-slate-700/50 scroll-mt-24">
                     <p className="text-[11px] font-semibold">Impulsar publicación (pago)</p>
                     <p className="mt-0.5 text-[10px] text-muted">
                       Creá el pedido y simulá el pago en desarrollo; en producción se conectará la pasarela al mismo
@@ -897,20 +932,25 @@ export function PerfilPage() {
                   <p className="text-[11px] text-muted">Subí un nuevo producto en minutos.</p>
                 </button>
                 <button
+                  type="button"
+                  onClick={handleShortcutConsultas}
                   style={lightCardStyle}
                   className="rounded-xl border border-card/40 bg-surface p-3 text-left shadow-[0_12px_30px_-22px_rgba(0,0,0,0.4)] dark:border-slate-700/50 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
                 >
                   <p className="text-[11px] font-semibold">Revisar consultas</p>
-                  <p className="text-[11px] text-muted">Respondé a tus clientes.</p>
+                  <p className="text-[11px] text-muted">Ir a tus publicaciones y contactos.</p>
                 </button>
                 <button
+                  type="button"
+                  onClick={handleShortcutImpulsar}
                   style={lightCardStyle}
                   className="rounded-xl border border-card/40 bg-surface p-3 text-left shadow-[0_12px_30px_-22px_rgba(0,0,0,0.4)] dark:border-slate-700/50 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
                 >
                   <p className="text-[11px] font-semibold">Impulsar publicación</p>
-                  <p className="text-[11px] text-muted">Destacá tus mejores productos.</p>
+                  <p className="text-[11px] text-muted">Destacá en inicio y categoría.</p>
                 </button>
                 <button
+                  type="button"
                   onClick={() => setIsBusinessModalOpen(true)}
                   style={lightCardStyle}
                   className="rounded-xl border border-card/40 bg-surface p-3 text-left shadow-[0_12px_30px_-22px_rgba(0,0,0,0.4)] dark:border-slate-700/50 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
@@ -919,11 +959,15 @@ export function PerfilPage() {
                   <p className="text-[11px] text-muted">Actualizá tu información.</p>
                 </button>
               </div>
+              {shortcutNotice ? (
+                <p className="mt-3 text-[11px] text-amber-700 dark:text-amber-400">{shortcutNotice}</p>
+              ) : null}
             </div>
 
             <div
+              id="perfil-publicaciones"
               style={lightSectionStyle}
-              className="rounded-2xl border border-card/50 bg-card/60 p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+              className="scroll-mt-24 rounded-2xl border border-card/50 bg-card/60 p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
             >
               <h2 className="text-sm font-semibold">Tus publicaciones</h2>
               {loading ? (

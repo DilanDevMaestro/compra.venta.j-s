@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { categories as fallbackCategories } from '../data/categories'
 import type { Listing } from '../data/listings'
@@ -15,6 +15,7 @@ import { LocationModal } from '../components/home/LocationModal'
 import { Footer } from '../components/layout/Footer'
 import { categoryToSlug, resolveCategoryKey, resolveCategoryName } from '../utils/categories'
 import { detectLocation } from '../services/locationService'
+import { readHomeFeedCache, writeHomeFeedCache } from '../services/homeFeedCache'
 
 type RawPublication = {
   _id?: string
@@ -60,6 +61,8 @@ export function HomePage() {
   const [featured, setFeatured] = useState<Listing[]>([])
   const [recent, setRecent] = useState<Listing[]>([])
   const [timeframe, setTimeframe] = useState<'all' | '12h' | '24h'>('24h')
+  const hydratedFromCache = useRef(false)
+  const initialTimeframeRef = useRef(timeframe)
   const [forYou, setForYou] = useState<Listing[]>([])
   const [boosted, setBoosted] = useState<Listing[]>([])
   const [offers, setOffers] = useState<Listing[]>([])
@@ -130,128 +133,188 @@ export function HomePage() {
   )
 
   const loadHomeData = useCallback(async () => {
-    try {
-      const [countryCounts, provinceCounts, cityCounts] = await Promise.all([
-        publicationsApi.getLocationCounts('country', 200),
-        publicationsApi.getLocationCounts('province', 200),
-        publicationsApi.getLocationCounts('city', 200)
-      ])
+    const recentOpts =
+      timeframe === 'all'
+        ? { hours: 720, limit: 40, personalized: true as const }
+        : timeframe === '12h'
+          ? { hours: 12, limit: 24, personalized: true as const }
+          : { hours: 24, limit: 28, personalized: true as const }
 
-      if (locationFilter) {
-        const data = await publicationsApi.getByLocation({
-          country: locationFilter.country,
-          province: locationFilter.province,
-          city: locationFilter.city,
-          limit: 500
-        })
-        const list: RawPublication[] = Array.isArray(data) ? data : data?.items || []
-
-        const sortedByCreated = [...list].sort((a, b) =>
-          String(b.createdAt || '').localeCompare(String(a.createdAt || ''))
-        )
-        const recentItems = sortedByCreated.slice(0, 10).map((pub) => toListing(pub))
-        const featuredItems = [...list]
-          .sort((a, b) => Number(b.vistas || 0) - Number(a.vistas || 0))
-          .slice(0, 3)
-          .map((pub) => toListing(pub, { featured: true }))
-        const offersItems = list
-          .filter((pub) => Number(pub.descuento || 0) > 0)
-          .slice(0, 10)
-          .map((pub) => toListing(pub, { isOffer: true }))
-
-        setRecent(recentItems)
-        setFeatured(featuredItems)
-        setOffers(offersItems)
-        buildCategoryCounts(list)
-        try {
-          const boostRaw = await publicationsApi.getBoosted()
-          const boostList = Array.isArray(boostRaw) ? boostRaw : []
-          setBoosted(boostList.map((pub: RawPublication) => toListing(pub)))
-        } catch {
-          setBoosted([])
-        }
-      } else {
-        const [recentData, discounted, counts] = await Promise.all([
-          publicationsApi.getRecent(),
-          publicationsApi.getDiscounted(),
-          publicationsApi.getCategoryCounts()
-        ])
-
-        if (recentData) {
-          if (recentData?.publications?.length) {
-            setRecent(recentData.publications.map((pub: RawPublication) => toListing(pub)))
-          }
-          if (recentData?.featured?.length) {
-            setFeatured(recentData.featured.map((pub: RawPublication) => toListing(pub, { featured: true })))
-          }
-          if (recentData?.personalized?.length) {
-            setForYou(recentData.personalized.map((pub: RawPublication) => toListing(pub)))
-          } else {
-            setForYou([])
-          }
-          if (recentData?.boosted?.length) {
-            setBoosted(recentData.boosted.map((pub: RawPublication) => toListing(pub)))
-          } else {
-            try {
-              const boostRaw = await publicationsApi.getBoosted()
-              const boostList = Array.isArray(boostRaw) ? boostRaw : []
-              setBoosted(boostList.map((pub: RawPublication) => toListing(pub)))
-            } catch {
-              setBoosted([])
-            }
-          }
-        }
-
-        if (Array.isArray(discounted) && discounted.length) {
-          setOffers(discounted.map((pub: RawPublication) => toListing(pub, { isOffer: true })))
-        }
-
-        if (counts && typeof counts === 'object') {
-          const normalized = Object.fromEntries(
-            Object.entries(counts).map(([name, count]) => [resolveCategoryKey(name), Number(count) || 0])
-          )
-
-          const next = fallbackCategories.map((category) => ({
-            ...category,
-            count: normalized[resolveCategoryKey(category.name)] ?? category.count
-          }))
-
-          const extras = Object.entries(normalized)
-            .filter(([name]) => !categoryIndex.has(name))
-            .map(([name, count], index) => ({
-              id: next.length + index + 1,
-              name: resolveCategoryName(name),
-              count,
-              icon: '🧩',
-              subcategories: []
-            }))
-
-          setCategories([...next, ...extras])
-        }
-      }
-
+    const applyLocationCounts = (
+      countryCounts: { items?: LocationItem[] } | null,
+      provinceCounts: { items?: LocationItem[] } | null,
+      cityCounts: { items?: LocationItem[] } | null
+    ) => {
       if (countryCounts?.items) {
-        setLocationCounts((prev) => ({
-          ...prev,
-          country: countryCounts.items
-        }))
+        setLocationCounts((prev) => ({ ...prev, country: countryCounts.items! }))
       }
       if (provinceCounts?.items) {
-        setLocationCounts((prev) => ({
-          ...prev,
-          province: provinceCounts.items
-        }))
+        setLocationCounts((prev) => ({ ...prev, province: provinceCounts.items! }))
       }
       if (cityCounts?.items) {
-        setLocationCounts((prev) => ({
-          ...prev,
-          city: cityCounts.items
-        }))
+        setLocationCounts((prev) => ({ ...prev, city: cityCounts.items! }))
       }
+    }
+
+    try {
+      await Promise.all([
+        (async () => {
+          try {
+            const [countryCounts, provinceCounts, cityCounts] = await Promise.all([
+              publicationsApi.getLocationCounts('country', 200),
+              publicationsApi.getLocationCounts('province', 200),
+              publicationsApi.getLocationCounts('city', 200)
+            ])
+            applyLocationCounts(countryCounts, provinceCounts, cityCounts)
+          } catch (err) {
+            console.error('Error location counts:', err)
+          }
+        })(),
+        (async () => {
+          try {
+            if (locationFilter) {
+              const data = await publicationsApi.getByLocation({
+                country: locationFilter.country,
+                province: locationFilter.province,
+                city: locationFilter.city,
+                limit: 150
+              })
+              const list: RawPublication[] = Array.isArray(data) ? data : (data as { items?: RawPublication[] })?.items || []
+
+              const sortedByCreated = [...list].sort((a, b) =>
+                String(b.createdAt || '').localeCompare(String(a.createdAt || ''))
+              )
+              const recentItems = sortedByCreated.slice(0, 10).map((pub) => toListing(pub))
+              const featuredItems = [...list]
+                .sort((a, b) => Number(b.vistas || 0) - Number(a.vistas || 0))
+                .slice(0, 3)
+                .map((pub) => toListing(pub, { featured: true }))
+              const offersItems = list
+                .filter((pub) => Number(pub.descuento || 0) > 0)
+                .slice(0, 10)
+                .map((pub) => toListing(pub, { isOffer: true }))
+
+              setRecent(recentItems)
+              setFeatured(featuredItems)
+              setOffers(offersItems)
+              buildCategoryCounts(list)
+              setForYou([])
+              try {
+                const boostRaw = await publicationsApi.getBoosted()
+                const boostList = Array.isArray(boostRaw) ? boostRaw : []
+                setBoosted(boostList.map((pub: RawPublication) => toListing(pub)))
+              } catch {
+                setBoosted([])
+              }
+              return
+            }
+
+            const [recentData, discounted, counts] = await Promise.all([
+              publicationsApi.getRecent(recentOpts),
+              publicationsApi.getDiscounted(),
+              publicationsApi.getCategoryCounts()
+            ])
+
+            let nextFeatured: Listing[] = []
+            let nextRecent: Listing[] = []
+            let nextForYou: Listing[] = []
+            let nextBoosted: Listing[] = []
+            let nextOffers: Listing[] = []
+            let nextCategories = fallbackCategories
+
+            if (recentData) {
+              if (recentData?.publications?.length) {
+                nextRecent = recentData.publications.map((pub: RawPublication) => toListing(pub))
+              }
+              setRecent(nextRecent)
+
+              if (recentData?.featured?.length) {
+                nextFeatured = recentData.featured.map((pub: RawPublication) => toListing(pub, { featured: true }))
+              }
+              setFeatured(nextFeatured)
+
+              if (recentData?.personalized?.length) {
+                nextForYou = recentData.personalized.map((pub: RawPublication) => toListing(pub))
+              }
+              setForYou(nextForYou)
+
+              if (recentData?.boosted?.length) {
+                nextBoosted = recentData.boosted.map((pub: RawPublication) => toListing(pub))
+              } else {
+                try {
+                  const boostRaw = await publicationsApi.getBoosted()
+                  const boostList = Array.isArray(boostRaw) ? boostRaw : []
+                  nextBoosted = boostList.map((pub: RawPublication) => toListing(pub))
+                } catch {
+                  nextBoosted = []
+                }
+              }
+              setBoosted(nextBoosted)
+            }
+
+            if (Array.isArray(discounted) && discounted.length) {
+              nextOffers = discounted.map((pub: RawPublication) => toListing(pub, { isOffer: true }))
+              setOffers(nextOffers)
+            } else {
+              setOffers([])
+            }
+
+            if (counts && typeof counts === 'object') {
+              const normalized = Object.fromEntries(
+                Object.entries(counts).map(([name, count]) => [resolveCategoryKey(name), Number(count) || 0])
+              )
+
+              const next = fallbackCategories.map((category) => ({
+                ...category,
+                count: normalized[resolveCategoryKey(category.name)] ?? category.count
+              }))
+
+              const extras = Object.entries(normalized)
+                .filter(([name]) => !categoryIndex.has(name))
+                .map(([name, count], index) => ({
+                  id: next.length + index + 1,
+                  name: resolveCategoryName(name),
+                  count,
+                  icon: '🧩',
+                  subcategories: []
+                }))
+
+              nextCategories = [...next, ...extras]
+              setCategories(nextCategories)
+            }
+
+            writeHomeFeedCache({
+              featured: nextFeatured,
+              recent: nextRecent,
+              forYou: nextForYou,
+              boosted: nextBoosted,
+              offers: nextOffers,
+              categories: nextCategories,
+              timeframe: String(timeframe)
+            })
+          } catch (error) {
+            console.error('Error loading feed:', error)
+          }
+        })()
+      ])
     } catch (error) {
       console.error('Error loading home data:', error)
     }
-  }, [buildCategoryCounts, categoryIndex, locationFilter, toListing])
+  }, [buildCategoryCounts, categoryIndex, locationFilter, timeframe, toListing])
+
+  // Hidrata el home con el último snapshot (mismo rango de fechas) para evitar pantalla vacía al volver atrás.
+  useLayoutEffect(() => {
+    if (hydratedFromCache.current) return
+    const snap = readHomeFeedCache(initialTimeframeRef.current)
+    if (!snap) return
+    hydratedFromCache.current = true
+    setFeatured(snap.featured as Listing[])
+    setRecent(snap.recent as Listing[])
+    setForYou(snap.forYou as Listing[])
+    setBoosted(snap.boosted as Listing[])
+    setOffers(snap.offers as Listing[])
+    setCategories(snap.categories as typeof fallbackCategories)
+  }, [])
 
   useEffect(() => {
     void (async () => {
@@ -286,46 +349,6 @@ export function HomePage() {
       window.removeEventListener('banners:updated', onUpdate)
     }
   }, [])
-
-  // Refetch recent publications when timeframe changes (or on mount)
-  useEffect(() => {
-    const fetchRecent = async () => {
-      try {
-        if (locationFilter) return
-        const hours = timeframe === '12h' ? 12 : timeframe === '24h' ? 24 : undefined
-        const recentData = await publicationsApi.getRecent(hours ? { hours } : undefined)
-        if (recentData) {
-          if (recentData?.publications?.length) {
-            setRecent(recentData.publications.map((pub: RawPublication) => toListing(pub)))
-          } else {
-            setRecent([])
-          }
-          if (recentData?.featured?.length) {
-            setFeatured(recentData.featured.map((pub: RawPublication) => toListing(pub, { featured: true })))
-          }
-          if (recentData?.personalized?.length) {
-            setForYou(recentData.personalized.map((pub: RawPublication) => toListing(pub)))
-          } else {
-            setForYou([])
-          }
-          if (recentData?.boosted?.length) {
-            setBoosted(recentData.boosted.map((pub: RawPublication) => toListing(pub)))
-          } else {
-            try {
-              const boostRaw = await publicationsApi.getBoosted()
-              const boostList = Array.isArray(boostRaw) ? boostRaw : []
-              setBoosted(boostList.map((pub: RawPublication) => toListing(pub)))
-            } catch {
-              setBoosted([])
-            }
-          }
-        }
-      } catch (error) {
-        console.error('Error fetching recent with timeframe:', error)
-      }
-    }
-    fetchRecent()
-  }, [locationFilter, timeframe, toListing])
 
   useEffect(() => {
     const eventsUrl = `${config.API_URL}/events`
@@ -465,21 +488,29 @@ export function HomePage() {
               <div className="lg:hidden" />
 
               {forYou.length > 0 ? (
-                <ListingSection title="Para vos" items={forYou} layout="scroll" />
+                <ListingSection title="Para vos" items={forYou} layout="scroll" scrollChunkSize={28} />
               ) : null}
 
               {boosted.length > 0 ? (
-                <ListingSection title="Impulsadas" items={boosted} layout="scroll" />
+                <ListingSection title="Impulsadas" items={boosted} layout="scroll" scrollChunkSize={28} />
               ) : null}
 
               <ListingSection
                 title="Recientes"
                 items={filteredRecent}
                 layout="scroll"
+                scrollChunkSize={28}
                 viewMoreLink="/recientes"
               />
-              <ListingSection title="Destacados" items={featured} layout="scroll" viewMoreLink="/destacados" />
-              <ListingSection title="Ofertas" items={offers} highlight="offer" layout="scroll" viewMoreLink="/ofertas" />
+              <ListingSection title="Destacados" items={featured} layout="scroll" scrollChunkSize={24} viewMoreLink="/destacados" />
+              <ListingSection
+                title="Ofertas"
+                items={offers}
+                highlight="offer"
+                layout="scroll"
+                scrollChunkSize={28}
+                viewMoreLink="/ofertas"
+              />
             </div>
           </div>
         </main>

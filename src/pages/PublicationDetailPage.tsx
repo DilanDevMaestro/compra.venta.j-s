@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { publicationsApi, socialApi } from '../services/api'
 import storage from '../services/storage'
 import { Header } from '../components/layout/Header'
@@ -153,7 +153,15 @@ export function PublicationDetailPage() {
     })
   }, [publication?._id, id])
 
-  const sellerId = publication?.userId ? String(publication.userId) : ''
+  const sellerId = useMemo(() => {
+    const raw = publication?.userId as unknown
+    if (raw == null || raw === '') return ''
+    if (typeof raw === 'object' && raw !== null && '_id' in raw) {
+      const inner = (raw as { _id?: unknown })._id
+      return inner != null ? String(inner) : ''
+    }
+    return String(raw)
+  }, [publication?.userId])
   const viewerId = storage.getUser()?._id
   const isOwnSeller =
     Boolean(viewerId && sellerId && String(viewerId) === String(sellerId))
@@ -275,6 +283,30 @@ export function PublicationDetailPage() {
                     <h1 className="mt-1.5 text-lg font-semibold">{publication.nombre}</h1>
                     {publication.subcategoria ? (
                       <p className="mt-1 text-[11px] text-muted">Subcategoría: {publication.subcategoria}</p>
+                    ) : null}
+                    {sellerId ? (
+                      <div className="mt-3 flex flex-wrap items-center gap-2">
+                        <Link
+                          to={`/vendedor/${sellerId}`}
+                          className="inline-flex rounded-full border border-primary/35 bg-primary/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-primary"
+                        >
+                          Ver perfil del vendedor
+                        </Link>
+                        {!isOwnSeller ? (
+                          <button
+                            type="button"
+                            onClick={handleToggleFollow}
+                            disabled={followBusy}
+                            className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-widest disabled:opacity-60 ${
+                              publication.sellerFollowed
+                                ? 'border-primary/50 bg-primary/10 text-primary'
+                                : 'border-card/40 text-foreground dark:border-slate-700/60'
+                            }`}
+                          >
+                            {publication.sellerFollowed ? 'Siguiendo' : 'Seguir vendedor'}
+                          </button>
+                        ) : null}
+                      </div>
                     ) : null}
                   </div>
 

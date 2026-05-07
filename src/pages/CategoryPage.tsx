@@ -25,6 +25,28 @@ type RawPublication = {
   imagenes?: Array<{ url?: string }>
 }
 
+const PAGE_SIZE = 36
+
+function normalizeCategoryPayload(data: unknown): { list: RawPublication[]; total: number } {
+  if (Array.isArray(data)) return { list: data as RawPublication[], total: data.length }
+  const d = data as { publications?: RawPublication[]; total?: number }
+  const list = Array.isArray(d.publications) ? d.publications : []
+  return { list, total: typeof d.total === 'number' ? d.total : list.length }
+}
+
+function mapToListing(pub: RawPublication): Listing {
+  return {
+    id: String(pub._id ?? ''),
+    title: String(pub.nombre ?? ''),
+    price: Number(pub.precio) || 0,
+    location: pub.categoria || 'Argentina',
+    subcategory: String(pub.subcategoria || pub.subCategory || pub.subcategory || pub.sub_categoria || ''),
+    imageUrl:
+      pub.imagenes?.[0]?.url ||
+      'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1200&auto=format&fit=crop'
+  }
+}
+
 export function CategoryPage() {
   const { categorySlug } = useParams<{ categorySlug: string }>()
   const [isDark, setIsDark] = useState<boolean>(() => {
@@ -51,7 +73,9 @@ export function CategoryPage() {
   const [categories, setCategories] = useState(fallbackCategories)
   const [items, setItems] = useState<Listing[]>([])
   const [boostedItems, setBoostedItems] = useState<Listing[]>([])
+  const [totalResults, setTotalResults] = useState(0)
   const [loading, setLoading] = useState(false)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [selectedSubcategory, setSelectedSubcategory] = useState('')
   const [showSubcategories, setShowSubcategories] = useState(false)
   const navigate = useNavigate()
@@ -100,43 +124,45 @@ export function CategoryPage() {
     setLoading(true)
     try {
       const [data, boostRaw] = await Promise.all([
-        publicationsApi.getByCategory(categorySlug, selectedSubcategory || undefined),
+        publicationsApi.getByCategory(categorySlug, selectedSubcategory || undefined, true, {
+          skip: 0,
+          limit: PAGE_SIZE
+        }),
         publicationsApi.getBoosted(categorySlug)
       ])
-      const list = Array.isArray(data) ? data : data?.publications || []
-      const mapped = list.map((pub: RawPublication) => ({
-        id: String(pub._id ?? ''),
-        title: String(pub.nombre ?? ''),
-        price: Number(pub.precio) || 0,
-        location: pub.categoria || 'Argentina',
-        subcategory: String(pub.subcategoria || pub.subCategory || pub.subcategory || pub.sub_categoria || ''),
-        imageUrl:
-          pub.imagenes?.[0]?.url ||
-          'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1200&auto=format&fit=crop'
-      })) as Listing[]
-      setItems(mapped)
+      const { list, total } = normalizeCategoryPayload(data)
+      setItems(list.map(mapToListing))
+      setTotalResults(total)
 
       const boostList = Array.isArray(boostRaw) ? boostRaw : []
-      setBoostedItems(
-        boostList.map((pub: RawPublication) => ({
-          id: String(pub._id ?? ''),
-          title: String(pub.nombre ?? ''),
-          price: Number(pub.precio) || 0,
-          location: pub.categoria || 'Argentina',
-          subcategory: String(pub.subcategoria || pub.subCategory || pub.subcategory || pub.sub_categoria || ''),
-          imageUrl:
-            pub.imagenes?.[0]?.url ||
-            'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1200&auto=format&fit=crop'
-        })) as Listing[]
-      )
+      setBoostedItems(boostList.map((pub: RawPublication) => mapToListing(pub)))
     } catch (error) {
       console.error('Error loading category:', error)
       setItems([])
+      setTotalResults(0)
       setBoostedItems([])
     } finally {
       setLoading(false)
     }
   }, [categorySlug, selectedSubcategory])
+
+  const loadMoreResults = useCallback(async () => {
+    if (!categorySlug || loadingMore) return
+    setLoadingMore(true)
+    try {
+      const data = await publicationsApi.getByCategory(categorySlug, selectedSubcategory || undefined, true, {
+        skip: items.length,
+        limit: PAGE_SIZE
+      })
+      const { list, total } = normalizeCategoryPayload(data)
+      setItems((prev) => [...prev, ...list.map(mapToListing)])
+      setTotalResults(total)
+    } catch (error) {
+      console.error('Error loading more:', error)
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [categorySlug, items.length, loadingMore, selectedSubcategory])
 
   useEffect(() => {
     loadCounts()
@@ -247,13 +273,25 @@ export function CategoryPage() {
               ) : (
                 <>
                   {boostedItems.length > 0 ? (
-                    <ListingSection title="Impulsadas en esta categoría" items={boostedItems} layout="scroll" />
+                    <ListingSection title="Impulsadas en esta categoría" items={boostedItems} layout="scroll" scrollChunkSize={24} />
                   ) : null}
                   <ListingSection
                     title="Resultados"
                     items={filteredItems}
                     gridClassName="grid gap-1.5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
                   />
+                  {items.length < totalResults ? (
+                    <div className="mt-4 flex justify-center">
+                      <button
+                        type="button"
+                        disabled={loadingMore}
+                        onClick={() => void loadMoreResults()}
+                        className="rounded-full border border-card/40 px-4 py-2 text-[11px] font-semibold uppercase tracking-widest text-muted hover:text-foreground disabled:opacity-60 dark:border-slate-700/60"
+                      >
+                        {loadingMore ? 'Cargando…' : `Cargar más (${Math.max(0, totalResults - items.length)} restantes)`}
+                      </button>
+                    </div>
+                  ) : null}
                 </>
               )}
             </div>

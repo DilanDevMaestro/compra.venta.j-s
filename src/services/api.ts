@@ -157,10 +157,11 @@ const mapPubRow = (pub: PublicationDto) => ({
 })
 
 export const publicationsApi = {
-  getRecent: async (opts?: { hours?: number; personalized?: boolean }) => {
+  getRecent: async (opts?: { hours?: number; personalized?: boolean; limit?: number }) => {
     try {
       const params = new URLSearchParams()
       if (opts?.hours) params.set('hours', String(opts.hours))
+      if (opts?.limit) params.set('limit', String(opts.limit))
       if (opts?.personalized !== false) params.set('personalized', '1')
       const qs = params.toString()
       const suffix = qs ? `?${qs}` : ''
@@ -199,12 +200,19 @@ export const publicationsApi = {
     }
   },
 
-  getByCategory: async (category: string, subcategory?: string, personalized = true) => {
+  getByCategory: async (
+    category: string,
+    subcategory?: string,
+    personalized = true,
+    opts?: { skip?: number; limit?: number }
+  ) => {
     const params = new URLSearchParams()
     if (subcategory) {
       params.set('subcategoria', subcategory)
     }
     if (personalized) params.set('personalized', '1')
+    if (opts?.skip != null) params.set('skip', String(opts.skip))
+    if (opts?.limit != null) params.set('limit', String(opts.limit))
     const suffix = params.toString() ? `?${params.toString()}` : '?personalized=1'
     const response = await fetch(`${config.API_URL}/publications/category/${category}${suffix}`, {
       ...fetchConfig,
@@ -214,6 +222,25 @@ export const publicationsApi = {
       }
     })
     return handleResponse(response)
+  },
+
+  getSellerPublications: async (userId: string, opts?: { skip?: number; limit?: number }) => {
+    const params = new URLSearchParams()
+    if (opts?.skip != null) params.set('skip', String(opts.skip))
+    if (opts?.limit != null) params.set('limit', String(opts.limit))
+    const q = params.toString() ? `?${params.toString()}` : ''
+    const response = await fetch(`${config.API_URL}/publications/seller/${userId}${q}`, {
+      ...fetchConfig,
+      headers: {
+        ...(fetchConfig.headers as Record<string, string>),
+        ...getAuthHeaders()
+      }
+    })
+    return handleResponse(response) as Promise<{
+      items: PublicationDto[]
+      total: number
+      hasMore: boolean
+    }>
   },
 
   getBoosted: async (categorySlug?: string) => {
@@ -648,6 +675,24 @@ export const bannerApi = {
 }
 
 export const socialApi = {
+  profileSummary: async (userId: string) => {
+    const response = await fetch(`${config.API_URL}/social/profile/${userId}/summary`, {
+      ...fetchConfig,
+      headers: {
+        ...(fetchConfig.headers as Record<string, string>),
+        ...getAuthHeaders()
+      }
+    })
+    return handleResponse(response) as Promise<{
+      id: string
+      name: string
+      picture: string
+      followersCount: number
+      followingCount: number
+      following: boolean
+      isBusiness?: boolean
+    }>
+  },
   follow: async (userId: string) => {
     const response = await authenticatedRequest.post(`/social/follow/${userId}`)
     return response.data as { following: boolean }

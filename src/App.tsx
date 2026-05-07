@@ -11,6 +11,7 @@ import { OfertasPage } from './pages/OfertasPage'
 import { LocationPage } from './pages/LocationPage'
 import { LocationRequiredModal } from './components/profile/LocationRequiredModal'
 import { AdminDashboardPage } from './pages/AdminDashboardPage'
+import { VendorProfilePage } from './pages/VendorProfilePage'
 import { LegalPlaceholderPage } from './pages/LegalPlaceholderPage'
 
 function App() {
@@ -60,6 +61,7 @@ function App() {
         <Route path="/auth" element={<AuthPage />} />
         <Route path="/auth/google/callback" element={<AuthPage />} />
         <Route path="/perfil" element={<PerfilPage />} />
+        <Route path="/vendedor/:userId" element={<VendorProfilePage />} />
         <Route path="/admin" element={<AdminDashboardPage />} />
         <Route path="/privacidad" element={<LegalPlaceholderPage title="Privacidad" />} />
         <Route path="/terminos" element={<LegalPlaceholderPage title="Términos" />} />

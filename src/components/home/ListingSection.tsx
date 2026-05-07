@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { Listing } from '../../data/listings'
 
@@ -9,6 +9,8 @@ type ListingSectionProps = {
   layout?: 'grid' | 'scroll'
   gridClassName?: string
   viewMoreLink?: string
+  /** En layout scroll, cantidad inicial de tarjetas y paso al cargar más (evita miles de nodos DOM). */
+  scrollChunkSize?: number
 }
 
 export function ListingSection({
@@ -17,9 +19,19 @@ export function ListingSection({
   highlight,
   layout = 'grid',
   gridClassName,
-  viewMoreLink
+  viewMoreLink,
+  scrollChunkSize = 36
 }: ListingSectionProps) {
   const scrollRef = useRef<HTMLDivElement | null>(null)
+  const [scrollVisible, setScrollVisible] = useState(scrollChunkSize)
+
+  useEffect(() => {
+    setScrollVisible(scrollChunkSize)
+  }, [items, scrollChunkSize])
+
+  const scrollItems =
+    layout === 'scroll' && items.length > scrollVisible ? items.slice(0, scrollVisible) : items
+  const scrollHasMore = layout === 'scroll' && items.length > scrollVisible
 
   const isDark = (() => {
     try {
@@ -66,7 +78,7 @@ export function ListingSection({
           </button>
           <div ref={scrollRef} className="overflow-x-auto overscroll-x-contain pb-2 pl-8 pr-8 scrollbar-hidden">
             <div className="flex gap-2">
-            {items.map((item) => (
+            {scrollItems.map((item) => (
               <Link
                 key={item.id}
                 to={`/publicacion/${item.id}`}
@@ -116,6 +128,17 @@ export function ListingSection({
           >
             ›
           </button>
+          {scrollHasMore ? (
+            <div className="mt-2 flex justify-center">
+              <button
+                type="button"
+                onClick={() => setScrollVisible((v) => v + scrollChunkSize)}
+                className="rounded-full border border-card/40 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted hover:text-foreground dark:border-slate-700/60"
+              >
+                Cargar más ({items.length - scrollVisible} restantes)
+              </button>
+            </div>
+          ) : null}
         </div>
       ) : (
         <div className={gridClassName || "grid gap-1.5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"}>
