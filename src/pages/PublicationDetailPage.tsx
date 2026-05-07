@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { publicationsApi } from '../services/api'
+import { publicationsApi, socialApi } from '../services/api'
+import storage from '../services/storage'
 import { Header } from '../components/layout/Header'
 import { Footer } from '../components/layout/Footer'
 import FullscreenImageModal from '../components/FullscreenImageModal'
@@ -19,11 +20,13 @@ type PublicationDetail = {
   descripcion?: string
   whatsapp?: string
   imagenes?: { url: string }[]
+  userId?: string
   userName?: string
   userPicture?: string
   vistas?: number
   likes?: number
   isLiked?: boolean
+  sellerFollowed?: boolean
   fechaCreacion?: string
   tiempoTranscurrido?: string
   shareCount?: number
@@ -59,6 +62,9 @@ export function PublicationDetailPage() {
   const [showModal, setShowModal] = useState(false)
   const [isLiking, setIsLiking] = useState(false)
   const [likeMessage, setLikeMessage] = useState('')
+  const [followBusy, setFollowBusy] = useState(false)
+  const [followMessage, setFollowMessage] = useState('')
+  const viewSignalSent = useRef<string | null>(null)
   const navigate = useNavigate()
 
   const images = useMemo(() => {
@@ -136,6 +142,44 @@ export function PublicationDetailPage() {
     }
     load()
   }, [id])
+
+  useEffect(() => {
+    const pubId = publication?._id
+    if (!pubId || !id || pubId !== id || !storage.getToken()) return
+    if (viewSignalSent.current === pubId) return
+    viewSignalSent.current = pubId
+    void socialApi.recordSignal({ type: 'view_publication', publicationId: pubId }).catch(() => {
+      viewSignalSent.current = null
+    })
+  }, [publication?._id, id])
+
+  const sellerId = publication?.userId ? String(publication.userId) : ''
+  const viewerId = storage.getUser()?._id
+  const isOwnSeller =
+    Boolean(viewerId && sellerId && String(viewerId) === String(sellerId))
+
+  const handleToggleFollow = async () => {
+    if (!sellerId || followBusy) return
+    if (!storage.getToken()) {
+      setFollowMessage('Iniciá sesión para seguir vendedores.')
+      return
+    }
+    setFollowBusy(true)
+    setFollowMessage('')
+    try {
+      if (publication?.sellerFollowed) {
+        await socialApi.unfollow(sellerId)
+        setPublication((prev) => (prev ? { ...prev, sellerFollowed: false } : prev))
+      } else {
+        await socialApi.follow(sellerId)
+        setPublication((prev) => (prev ? { ...prev, sellerFollowed: true } : prev))
+      }
+    } catch {
+      setFollowMessage('No se pudo actualizar el seguimiento.')
+    } finally {
+      setFollowBusy(false)
+    }
+  }
 
   const handleToggleFavorite = async () => {
     if (!publication?._id || isLiking) return
@@ -278,21 +322,38 @@ export function PublicationDetailPage() {
 
                 <div className="rounded-2xl border border-card/50 bg-[linear-gradient(180deg,rgba(0,0,0,0.12)_0%,rgba(0,0,0,0.06)_35%,rgba(0,0,0,0)_100%)] p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(0,0,0,0.2)_100%)]">
                   <h2 className="text-[12px] font-semibold">Vendedor</h2>
-                  <div className="mt-2 flex items-center gap-2">
-                    <div className="h-10 w-10 overflow-hidden rounded-full border border-card/40 bg-surface dark:border-slate-700/50">
-                      <img
-                        src={publication.userPicture || fallbackImage}
-                        alt={publication.userName || 'Usuario'}
-                        className="h-full w-full object-cover"
-                      />
+                  <div className="mt-2 flex items-start justify-between gap-2">
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                      <div className="h-10 w-10 shrink-0 overflow-hidden rounded-full border border-card/40 bg-surface dark:border-slate-700/50">
+                        <img
+                          src={publication.userPicture || fallbackImage}
+                          alt={publication.userName || 'Usuario'}
+                          className="h-full w-full object-cover"
+                        />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-[12px] font-semibold">{publication.userName || 'Usuario'}</p>
+                        {publication.whatsapp ? (
+                          <p className="text-[11px] text-muted">WhatsApp: {publication.whatsapp}</p>
+                        ) : null}
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-[12px] font-semibold">{publication.userName || 'Usuario'}</p>
-                      {publication.whatsapp ? (
-                        <p className="text-[11px] text-muted">WhatsApp: {publication.whatsapp}</p>
-                      ) : null}
-                    </div>
+                    {!isOwnSeller && sellerId ? (
+                      <button
+                        type="button"
+                        onClick={handleToggleFollow}
+                        disabled={followBusy}
+                        className={`shrink-0 rounded-full border px-3 py-1 text-[10px] font-semibold uppercase tracking-widest disabled:opacity-60 ${
+                          publication.sellerFollowed
+                            ? 'border-primary/50 bg-primary/10 text-primary'
+                            : 'border-card/40 text-foreground dark:border-slate-700/60'
+                        }`}
+                      >
+                        {publication.sellerFollowed ? 'Siguiendo' : 'Seguir'}
+                      </button>
+                    ) : null}
                   </div>
+                  {followMessage ? <p className="mt-2 text-[10px] text-muted">{followMessage}</p> : null}
                   <div className="mt-3 grid grid-cols-2 gap-2">
                     {whatsappLink ? (
                       <a

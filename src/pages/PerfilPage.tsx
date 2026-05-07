@@ -3,7 +3,7 @@ import type { FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Header } from '../components/layout/Header'
 import { Footer } from '../components/layout/Footer'
-import { publicationsApi, userApi } from '../services/api'
+import { commerceApi, publicationsApi, socialApi, userApi } from '../services/api'
 import storage from '../services/storage'
 
 type BusinessProfile = {
@@ -22,10 +22,23 @@ type BusinessProfile = {
 }
 
 type UserProfile = {
+  _id?: string
+  id?: string
   name?: string
   email?: string
   picture?: string
   businessProfile?: BusinessProfile
+  referralCode?: string
+  referralShareUrl?: string
+  referral?: {
+    totalInvites?: number
+    rewardPoints?: number
+    joinedWithReferral?: boolean
+  }
+  monetizationProfile?: {
+    walletBalance?: number
+    couponCredits?: number
+  }
 }
 
 export function PerfilPage() {
@@ -60,8 +73,10 @@ export function PerfilPage() {
     activo?: boolean
     imagenes?: Array<{ url?: string }>
     descuento?: number | string
+    precioOriginal?: number
     shareCount?: number
     whatsappClicks?: number
+    createdAt?: string
   }
   const [publications, setPublications] = useState<PubItem[]>([])
   const [loading, setLoading] = useState(false)
@@ -72,6 +87,14 @@ export function PerfilPage() {
   const [profileModeOverride, setProfileModeOverride] = useState<boolean | null>(null)
   const [isActivityOpen, setIsActivityOpen] = useState(true)
   const [isShortcutsOpen, setIsShortcutsOpen] = useState(false)
+  const [profileToggleBusy, setProfileToggleBusy] = useState(false)
+  const [profileToggleError, setProfileToggleError] = useState('')
+  const [followStats, setFollowStats] = useState<{ followersCount: number; followingCount: number } | null>(null)
+  const [referralClaimCode, setReferralClaimCode] = useState('')
+  const [referralMsg, setReferralMsg] = useState('')
+  const [pendingBoostId, setPendingBoostId] = useState('')
+  const [commerceMsg, setCommerceMsg] = useState('')
+  const [lastBoostOrderId, setLastBoostOrderId] = useState('')
   const [formState, setFormState] = useState({
     businessName: '',
     location: '',
@@ -84,11 +107,20 @@ export function PerfilPage() {
   const [bannerImage, setBannerImage] = useState<File | null>(null)
   const [profilePicture, setProfilePicture] = useState<File | null>(null)
   const navigate = useNavigate()
-  const isLocalPreview = import.meta.env.DEV
+  /** Datos de diseño de muestra solo con `VITE_PROFILE_MOCK=1` en `.env` (en desarrollo podés probar la API real). */
+  const isDesignPreview = import.meta.env.VITE_PROFILE_MOCK === '1'
   const isBusinessActive = profileModeOverride ?? Boolean(user?.businessProfile?.isActive)
-  const previewMetrics = isLocalPreview
-    ? { rating: 4.8, responseRate: 96, responseTime: '1h', followers: 1280 }
-    : { rating: 0, responseRate: 0, responseTime: '—', followers: 0 }
+  const previewMetrics = useMemo(() => {
+    if (isDesignPreview) {
+      return { rating: 4.8, responseRate: 96, responseTime: '1h', followers: 1280 }
+    }
+    return {
+      rating: 0,
+      responseRate: 0,
+      responseTime: '—',
+      followers: followStats?.followersCount ?? 0
+    }
+  }, [isDesignPreview, followStats?.followersCount])
   const lightSectionStyle = !isDark
     ? {
         // Use global surface color with a very subtle white overlay to match palette
@@ -113,13 +145,13 @@ export function PerfilPage() {
     }, 0)
     const totalShares = publications.reduce((sum, p) => sum + (p.shareCount || 0), 0)
     const totalWhatsappClicks = publications.reduce((sum, p) => sum + (p.whatsappClicks || 0), 0)
-    const activePublications = publications.filter((p) => p.activo === true).length
+    const activePublications = publications.filter((p) => p.activo !== false).length
     return { totalPublications, totalViews, totalLikes, activePublications, totalShares, totalWhatsappClicks }
   }, [publications])
 
   useEffect(() => {
     const localUser = storage.getUser()
-    if (isLocalPreview) {
+    if (isDesignPreview) {
       setUser({
         name: 'Diseño local',
         email: 'local@preview.test',
@@ -199,7 +231,13 @@ export function PerfilPage() {
           })
         }
         const pubs = await publicationsApi.getUserPublications()
-        setPublications(Array.isArray(pubs) ? pubs : [])
+        const list = Array.isArray(pubs) ? pubs : []
+        const sorted = [...list].sort(
+          (a, b) =>
+            new Date((b as PubItem).createdAt || 0).getTime() -
+            new Date((a as PubItem).createdAt || 0).getTime()
+        )
+        setPublications(sorted)
       } catch (error) {
         console.error('Error loading profile:', error)
       } finally {
@@ -208,7 +246,73 @@ export function PerfilPage() {
     }
 
     load()
-  }, [isLocalPreview])
+  }, [isDesignPreview])
+
+  useEffect(() => {
+    if (isDesignPreview) return
+    const uid = user?._id || user?.id
+    if (!uid || !storage.getToken()) {
+      setFollowStats(null)
+      return
+    }
+    let cancelled = false
+    void socialApi
+      .followStatus(String(uid))
+      .then((data) => {
+        if (!cancelled) {
+          setFollowStats({
+            followersCount: data.followersCount,
+            followingCount: data.followingCount
+          })
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setFollowStats(null)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user?._id, user?.id, isDesignPreview])
+
+  const handlePersistToggleBusinessMode = async () => {
+    setProfileToggleError('')
+    const nextActive = !isBusinessActive
+
+    if (isDesignPreview) {
+      setProfileModeOverride(nextActive)
+      setUser((prev) =>
+        prev
+          ? {
+              ...prev,
+              businessProfile: {
+                ...(prev.businessProfile || {}),
+                isActive: nextActive
+              }
+            }
+          : prev
+      )
+      return
+    }
+
+    setProfileToggleBusy(true)
+    try {
+      const res = await userApi.setBusinessProfileActive(nextActive)
+      if (!res?.success) {
+        setProfileToggleError('No se pudo guardar el modo de perfil.')
+        return
+      }
+      setProfileModeOverride(null)
+      const profile = await userApi.getProfile()
+      if (profile) {
+        storage.setUser(profile)
+        setUser(profile)
+      }
+    } catch {
+      setProfileToggleError('No se pudo guardar el modo de perfil.')
+    } finally {
+      setProfileToggleBusy(false)
+    }
+  }
 
   const handleBusinessSubmit = async (event: FormEvent) => {
     event.preventDefault()
@@ -229,6 +333,7 @@ export function PerfilPage() {
 
       const response = await userApi.updateBusinessProfile(formData)
       if (response?.success) {
+        setProfileModeOverride(null)
         const updatedProfile = await userApi.getProfile()
         if (updatedProfile) {
           storage.setUser(updatedProfile)
@@ -284,6 +389,65 @@ export function PerfilPage() {
     navigate(`/publicar?edit=${pubId}`)
   }
 
+  const handleClaimReferral = async () => {
+    if (isDesignPreview) return
+    setReferralMsg('')
+    try {
+      const res = await userApi.claimReferral(referralClaimCode.trim())
+      if (res?.success) {
+        setReferralMsg('Código aplicado correctamente.')
+        const profile = await userApi.getProfile()
+        if (profile) {
+          storage.setUser(profile)
+          setUser(profile as UserProfile)
+        }
+        setReferralClaimCode('')
+      } else {
+        setReferralMsg(typeof res?.message === 'string' ? res.message : 'No se pudo aplicar el código.')
+      }
+    } catch {
+      setReferralMsg('Error al aplicar el código.')
+    }
+  }
+
+  const handleCreateBoostStub = async () => {
+    setCommerceMsg('')
+    if (isDesignPreview) {
+      setCommerceMsg('Desactivá VITE_PROFILE_MOCK para probar pedidos reales.')
+      return
+    }
+    if (!pendingBoostId) {
+      setCommerceMsg('Elegí una publicación.')
+      return
+    }
+    try {
+      const res = await commerceApi.createBoostOrder(pendingBoostId, { unit: 'week', value: 1 })
+      if (res?.orderId) {
+        setLastBoostOrderId(String(res.orderId))
+        setCommerceMsg(
+          `Pedido creado. Monto referencial: ${res.amount ?? '—'} ${res.currency || 'ARS'}. Confirmá el pago (simulación) para activar el impulso en el inicio.`
+        )
+      }
+    } catch {
+      setCommerceMsg('No se pudo crear el pedido.')
+    }
+  }
+
+  const handleConfirmBoostStub = async () => {
+    if (!lastBoostOrderId) {
+      setCommerceMsg('Primero creá un pedido de impulso.')
+      return
+    }
+    try {
+      await commerceApi.confirmStub(lastBoostOrderId)
+      setCommerceMsg('Impulso activado. Revisá el inicio (sección Impulsadas).')
+    } catch {
+      setCommerceMsg(
+        'La simulación de pago solo está disponible fuera de producción o con PAYMENTS_STUB=true en el servidor.'
+      )
+    }
+  }
+
   // Do not block render based on stored token when using httpOnly cookies.
   // Attempt to load profile via cookie-backed API call instead (handled in useEffect).
 
@@ -321,7 +485,7 @@ export function PerfilPage() {
                 })()}
               </div>
             </div>
-            <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-col gap-4 p-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
               <div className="flex items-center gap-3">
                 <div className="h-16 w-16 overflow-hidden rounded-full border border-card/40 bg-surface dark:border-slate-700/50">
                   <img
@@ -346,26 +510,21 @@ export function PerfilPage() {
                   {isBusinessActive ? 'Editar perfil empresa' : 'Actualizar a perfil empresa'}
                 </button>
                 <button
-                  onClick={() => {
-                    const nextValue = !isBusinessActive
-                    setProfileModeOverride(nextValue)
-                    setUser((prev) =>
-                      prev
-                        ? {
-                            ...prev,
-                            businessProfile: {
-                              ...(prev.businessProfile || {}),
-                              isActive: nextValue
-                            }
-                          }
-                        : prev
-                    )
-                  }}
-                  className="rounded-full border border-black/10 bg-gradient-to-b from-black/5 via-transparent to-transparent px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-foreground shadow-[0_10px_20px_-12px_rgba(0,0,0,0.5)] transition hover:-translate-y-0.5 dark:border-slate-700/60 dark:from-white/5"
+                  type="button"
+                  onClick={handlePersistToggleBusinessMode}
+                  disabled={profileToggleBusy}
+                  className="rounded-full border border-black/10 bg-gradient-to-b from-black/5 via-transparent to-transparent px-4 py-2 text-[10px] font-semibold uppercase tracking-widest text-foreground shadow-[0_10px_20px_-12px_rgba(0,0,0,0.5)] transition hover:-translate-y-0.5 disabled:opacity-60 dark:border-slate-700/60 dark:from-white/5"
                 >
-                  {isBusinessActive ? 'Cambiar a perfil personal' : 'Cambiar a perfil empresa'}
+                  {profileToggleBusy
+                    ? 'Guardando...'
+                    : isBusinessActive
+                      ? 'Cambiar a perfil personal'
+                      : 'Cambiar a perfil empresa'}
                 </button>
               </div>
+              {profileToggleError ? (
+                <p className="mt-0 w-full px-0 text-[11px] text-red-500 sm:basis-full">{profileToggleError}</p>
+              ) : null}
             </div>
             {isBusinessActive && user?.businessProfile?.description ? (
               <p className="px-4 pb-2 text-[12px] text-muted">{user.businessProfile.description}</p>
@@ -555,7 +714,7 @@ export function PerfilPage() {
                         className="rounded-xl border border-card/40 bg-surface p-3 text-center shadow-[0_12px_30px_-22px_rgba(0,0,0,0.45)] dark:border-slate-700/50 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
                       >
                         <p className="text-[10px] text-muted">Seguidores</p>
-                        <p className="text-base font-semibold">{previewMetrics.followers || '—'}</p>
+                        <p className="text-base font-semibold">{previewMetrics.followers}</p>
                       </div>
                     </>
                   ) : null}
@@ -612,6 +771,104 @@ export function PerfilPage() {
           </div>
 
           <div className="mt-6 grid gap-4">
+            {!isDesignPreview ? (
+              <div
+                style={lightSectionStyle}
+                className="rounded-2xl border border-card/50 bg-card/60 p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
+              >
+                <h2 className="text-sm font-semibold">Referidos y visibilidad</h2>
+                <p className="mt-1 text-[11px] text-muted">
+                  Compartí tu enlace; cada alta válida suma puntos para futuros cupones. Los impulsos aparecen en inicio y
+                  categoría.
+                </p>
+                <div className="mt-3 space-y-2 text-[11px]">
+                  <p>
+                    <span className="font-semibold">Tu código:</span>{' '}
+                    <span className="font-mono">{user?.referralCode || '—'}</span>
+                  </p>
+                  {user?.referralShareUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void navigator.clipboard?.writeText(user.referralShareUrl || '')
+                        setReferralMsg('Enlace copiado.')
+                      }}
+                      className="rounded-full border border-card/40 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest"
+                    >
+                      Copiar enlace de invitación
+                    </button>
+                  ) : null}
+                  <p className="text-muted">
+                    Referidos: {user?.referral?.totalInvites ?? 0} · Puntos: {user?.referral?.rewardPoints ?? 0} ·
+                    Cupones (próx.): {user?.monetizationProfile?.couponCredits ?? 0}
+                  </p>
+                  {!user?.referral?.joinedWithReferral ? (
+                    <div className="flex flex-wrap items-end gap-2 pt-2">
+                      <label className="text-[11px] font-semibold">
+                        ¿Tenés un código de invitación?
+                        <input
+                          value={referralClaimCode}
+                          onChange={(e) => setReferralClaimCode(e.target.value)}
+                          className="mt-1 block w-full min-w-[200px] rounded-lg border border-card/60 bg-background px-2 py-1 text-[12px]"
+                          placeholder="Código"
+                        />
+                      </label>
+                      <button
+                        type="button"
+                        onClick={handleClaimReferral}
+                        className="rounded-full bg-foreground px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-background"
+                      >
+                        Aplicar
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-[11px] text-muted">Ya registraste un código de invitación.</p>
+                  )}
+                  {referralMsg ? <p className="text-[11px] text-muted">{referralMsg}</p> : null}
+
+                  <div className="mt-4 border-t border-card/40 pt-3 dark:border-slate-700/50">
+                    <p className="text-[11px] font-semibold">Impulsar publicación (pago)</p>
+                    <p className="mt-0.5 text-[10px] text-muted">
+                      Creá el pedido y simulá el pago en desarrollo; en producción se conectará la pasarela al mismo
+                      endpoint de confirmación.
+                    </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                      <select
+                        value={pendingBoostId}
+                        onChange={(e) => setPendingBoostId(e.target.value)}
+                        className="rounded-lg border border-card/60 bg-background px-2 py-1 text-[11px]"
+                      >
+                        <option value="">Elegí publicación</option>
+                        {publications.map((p) => (
+                          <option key={p._id} value={p._id}>
+                            {p.nombre || p._id}
+                          </option>
+                        ))}
+                      </select>
+                      <button
+                        type="button"
+                        onClick={handleCreateBoostStub}
+                        className="rounded-full border border-card/40 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest"
+                      >
+                        Crear pedido
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleConfirmBoostStub}
+                        className="rounded-full bg-primary/15 px-3 py-1 text-[10px] font-semibold uppercase tracking-widest text-primary"
+                      >
+                        Simular pago (dev)
+                      </button>
+                    </div>
+                    {lastBoostOrderId ? (
+                      <p className="mt-1 font-mono text-[10px] text-muted">Pedido: {lastBoostOrderId}</p>
+                    ) : null}
+                    {commerceMsg ? <p className="mt-2 text-[11px] text-muted">{commerceMsg}</p> : null}
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
             <div
               style={lightSectionStyle}
               className="rounded-2xl border border-card/50 bg-card/60 p-4 shadow-[0_20px_50px_-35px_rgba(0,0,0,0.6)] dark:border-slate-700/60 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
@@ -631,6 +888,8 @@ export function PerfilPage() {
                 }
               >
                 <button
+                  type="button"
+                  onClick={() => navigate('/publicar')}
                   style={lightCardStyle}
                   className="rounded-xl border border-card/40 bg-surface p-3 text-left shadow-[0_12px_30px_-22px_rgba(0,0,0,0.4)] dark:border-slate-700/50 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.08)_0%,rgba(255,255,255,0.04)_35%,rgba(255,255,255,0)_100%)]"
                 >
@@ -682,7 +941,7 @@ export function PerfilPage() {
                           <div className="flex items-center justify-between">
                             <p className="text-[12px] font-semibold line-clamp-2 overflow-hidden">{pub.nombre}</p>
                             <span className="rounded-full border border-black/10 bg-surface px-2 py-0.5 text-[9px] font-semibold uppercase tracking-widest text-muted dark:border-slate-700/60">
-                              {pub.activo ? 'Activa' : 'Pausada'}
+                              {pub.activo !== false ? 'Activa' : 'Pausada'}
                             </span>
                           </div>
                           <p className="text-[11px] text-muted">${Number(pub.precio || 0).toLocaleString('es-AR')}</p>
@@ -722,11 +981,11 @@ export function PerfilPage() {
                             onClick={(e) => {
                               e.stopPropagation()
                               e.preventDefault()
-                              handleToggleActive(pub._id, !!pub.activo)
+                              handleToggleActive(pub._id, pub.activo !== false)
                             }}
                             className="shrink whitespace-nowrap rounded-md border border-card/40 bg-background/50 px-2 sm:px-2 py-1 text-[10px] sm:text-[11px] lg:text-[9px] font-semibold text-foreground shadow-sm dark:border-slate-700/60 dark:bg-surface/80"
                           >
-                            {pub.activo ? 'Pausar' : 'Activar'}
+                            {pub.activo !== false ? 'Pausar' : 'Activar'}
                           </button>
 
                           <button

@@ -60,6 +60,8 @@ export function HomePage() {
   const [featured, setFeatured] = useState<Listing[]>([])
   const [recent, setRecent] = useState<Listing[]>([])
   const [timeframe, setTimeframe] = useState<'all' | '12h' | '24h'>('24h')
+  const [forYou, setForYou] = useState<Listing[]>([])
+  const [boosted, setBoosted] = useState<Listing[]>([])
   const [offers, setOffers] = useState<Listing[]>([])
   const [showCategories, setShowCategories] = useState(false)
   const [showLocations, setShowLocations] = useState(false)
@@ -161,6 +163,13 @@ export function HomePage() {
         setFeatured(featuredItems)
         setOffers(offersItems)
         buildCategoryCounts(list)
+        try {
+          const boostRaw = await publicationsApi.getBoosted()
+          const boostList = Array.isArray(boostRaw) ? boostRaw : []
+          setBoosted(boostList.map((pub: RawPublication) => toListing(pub)))
+        } catch {
+          setBoosted([])
+        }
       } else {
         const [recentData, discounted, counts] = await Promise.all([
           publicationsApi.getRecent(),
@@ -174,6 +183,22 @@ export function HomePage() {
           }
           if (recentData?.featured?.length) {
             setFeatured(recentData.featured.map((pub: RawPublication) => toListing(pub, { featured: true })))
+          }
+          if (recentData?.personalized?.length) {
+            setForYou(recentData.personalized.map((pub: RawPublication) => toListing(pub)))
+          } else {
+            setForYou([])
+          }
+          if (recentData?.boosted?.length) {
+            setBoosted(recentData.boosted.map((pub: RawPublication) => toListing(pub)))
+          } else {
+            try {
+              const boostRaw = await publicationsApi.getBoosted()
+              const boostList = Array.isArray(boostRaw) ? boostRaw : []
+              setBoosted(boostList.map((pub: RawPublication) => toListing(pub)))
+            } catch {
+              setBoosted([])
+            }
           }
         }
 
@@ -268,7 +293,7 @@ export function HomePage() {
       try {
         if (locationFilter) return
         const hours = timeframe === '12h' ? 12 : timeframe === '24h' ? 24 : undefined
-        const recentData = await publicationsApi.getRecent(hours)
+        const recentData = await publicationsApi.getRecent(hours ? { hours } : undefined)
         if (recentData) {
           if (recentData?.publications?.length) {
             setRecent(recentData.publications.map((pub: RawPublication) => toListing(pub)))
@@ -277,6 +302,22 @@ export function HomePage() {
           }
           if (recentData?.featured?.length) {
             setFeatured(recentData.featured.map((pub: RawPublication) => toListing(pub, { featured: true })))
+          }
+          if (recentData?.personalized?.length) {
+            setForYou(recentData.personalized.map((pub: RawPublication) => toListing(pub)))
+          } else {
+            setForYou([])
+          }
+          if (recentData?.boosted?.length) {
+            setBoosted(recentData.boosted.map((pub: RawPublication) => toListing(pub)))
+          } else {
+            try {
+              const boostRaw = await publicationsApi.getBoosted()
+              const boostList = Array.isArray(boostRaw) ? boostRaw : []
+              setBoosted(boostList.map((pub: RawPublication) => toListing(pub)))
+            } catch {
+              setBoosted([])
+            }
           }
         }
       } catch (error) {
@@ -422,6 +463,14 @@ export function HomePage() {
                 </div>
               </div>
               <div className="lg:hidden" />
+
+              {forYou.length > 0 ? (
+                <ListingSection title="Para vos" items={forYou} layout="scroll" />
+              ) : null}
+
+              {boosted.length > 0 ? (
+                <ListingSection title="Impulsadas" items={boosted} layout="scroll" />
+              ) : null}
 
               <ListingSection
                 title="Recientes"

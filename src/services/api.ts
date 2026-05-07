@@ -21,6 +21,8 @@ type PublicationDto = {
 type RecentResponse = {
   publications: PublicationDto[]
   featured: PublicationDto[]
+  personalized?: PublicationDto[]
+  boosted?: PublicationDto[]
 }
 
 type UpdatePublicationInput = {
@@ -142,50 +144,81 @@ const handleResponse = async (response: Response) => {
   return response.json()
 }
 
+const mapPubRow = (pub: PublicationDto) => ({
+  _id: pub._id,
+  nombre: pub.nombre,
+  precio: pub.precio,
+  categoria: pub.categoria,
+  subcategoria: pub.subcategoria,
+  imagenes: pub.imagenes || [],
+  vistas: pub.vistas || 0,
+  likes: pub.likes || 0,
+  createdAt: pub.createdAt
+})
+
 export const publicationsApi = {
-  getRecent: async (hours?: number) => {
+  getRecent: async (opts?: { hours?: number; personalized?: boolean }) => {
     try {
-      const suffix = hours ? `?hours=${hours}` : ''
-      const response = await fetch(`${config.API_URL}/publications/recent${suffix}`)
+      const params = new URLSearchParams()
+      if (opts?.hours) params.set('hours', String(opts.hours))
+      if (opts?.personalized !== false) params.set('personalized', '1')
+      const qs = params.toString()
+      const suffix = qs ? `?${qs}` : ''
+      const response = await fetch(`${config.API_URL}/publications/recent${suffix}`, {
+        credentials: 'include',
+        headers: {
+          Accept: 'application/json',
+          ...getAuthHeaders()
+        }
+      })
       if (!response.ok) throw new Error('Error fetching publications')
       const data = (await response.json()) as RecentResponse
 
+      const personalized =
+        data.personalized?.length && Array.isArray(data.personalized)
+          ? data.personalized.map(mapPubRow)
+          : undefined
+
+      const boosted =
+        data.boosted?.length && Array.isArray(data.boosted)
+          ? data.boosted.map(mapPubRow)
+          : undefined
+
       return {
-        publications: data.publications.map((pub: PublicationDto) => ({
-          _id: pub._id,
-          nombre: pub.nombre,
-          precio: pub.precio,
-          categoria: pub.categoria,
-          subcategoria: pub.subcategoria,
-          imagenes: pub.imagenes || [],
-          vistas: pub.vistas || 0,
-          likes: pub.likes || 0,
-          createdAt: pub.createdAt
-        })),
+        publications: data.publications.map(mapPubRow),
         featured: data.featured.map((pub: PublicationDto) => ({
-          _id: pub._id,
-          nombre: pub.nombre,
-          precio: pub.precio,
-          categoria: pub.categoria,
-          subcategoria: pub.subcategoria,
-          imagenes: pub.imagenes || [],
-          vistas: pub.vistas || 0,
+          ...mapPubRow(pub),
           likes: pub.likes || 0
-        }))
+        })),
+        personalized,
+        boosted
       }
     } catch (error) {
       console.error('Error fetching publications:', error)
-      return { publications: [], featured: [] }
+      return { publications: [], featured: [], personalized: undefined, boosted: undefined }
     }
   },
 
-  getByCategory: async (category: string, subcategory?: string) => {
+  getByCategory: async (category: string, subcategory?: string, personalized = true) => {
     const params = new URLSearchParams()
     if (subcategory) {
       params.set('subcategoria', subcategory)
     }
-    const suffix = params.toString() ? `?${params.toString()}` : ''
-    const response = await fetch(`${config.API_URL}/publications/category/${category}${suffix}`, fetchConfig)
+    if (personalized) params.set('personalized', '1')
+    const suffix = params.toString() ? `?${params.toString()}` : '?personalized=1'
+    const response = await fetch(`${config.API_URL}/publications/category/${category}${suffix}`, {
+      ...fetchConfig,
+      headers: {
+        ...(fetchConfig.headers as Record<string, string>),
+        ...getAuthHeaders()
+      }
+    })
+    return handleResponse(response)
+  },
+
+  getBoosted: async (categorySlug?: string) => {
+    const q = categorySlug ? `?category=${encodeURIComponent(categorySlug)}` : ''
+    const response = await fetch(`${config.API_URL}/publications/boosted${q}`, fetchConfig)
     return handleResponse(response)
   },
 
@@ -201,7 +234,13 @@ export const publicationsApi = {
   },
 
   getById: async (id: string) => {
-    const response = await fetch(`${config.API_URL}/publications/${id}`, fetchConfig)
+    const response = await fetch(`${config.API_URL}/publications/${id}`, {
+      ...fetchConfig,
+      headers: {
+        ...(fetchConfig.headers as Record<string, string>),
+        ...getAuthHeaders()
+      }
+    })
     return handleResponse(response)
   },
 
@@ -391,7 +430,11 @@ export const graphQLApi = {
 export const userApi = {
   getProfile: async () => {
     const response = await authenticatedRequest.get('/users/profile')
-    return response.data
+    const data = response.data
+    if (data && data.id != null && data._id == null) {
+      return { ...data, _id: String(data.id) }
+    }
+    return data
   },
 
   updateLocation: async (data: {
@@ -454,19 +497,86 @@ export const userApi = {
     }
 
     return response.data
+  },
+
+  setBusinessProfileActive: async (isActive: boolean) => {
+    const response = await authenticatedRequest.patch('/users/business-profile-active', { isActive })
+    const data = response.data as { success?: boolean; businessProfile?: Record<string, unknown> }
+    if (data?.success && data.businessProfile) {
+      const currentUser = storage.getUser() || {}
+      storage.setUser({
+        ...currentUser,
+        businessProfile: data.businessProfile
+      })
+    }
+    return data
+  },
+
+  claimReferral: async (code: string) => {
+    const response = await authenticatedRequest.post('/users/referral/claim', { code })
+    return response.data as { success?: boolean; message?: string; referral?: unknown }
+  }
+}
+
+export const commerceApi = {
+  createBoostOrder: async (
+    publicationId: string,
+    duration?: { unit: 'day' | 'week' | 'month'; value: number }
+  ) => {
+    const response = await authenticatedRequest.post('/commerce/orders/boost-publication', {
+      publicationId,
+      duration: duration || { unit: 'week', value: 1 }
+    })
+    return response.data as {
+      success?: boolean
+      orderId?: string
+      amount?: number
+      currency?: string
+      checkoutPending?: boolean
+      message?: string
+    }
+  },
+
+  createAdSlotOrder: async (payload: {
+    orderType?: 'banner_slot' | 'category_feature'
+    duration?: { unit: 'day' | 'week' | 'month'; value: number }
+    categoryKey?: string
+    notes?: string
+  }) => {
+    const response = await authenticatedRequest.post('/commerce/orders/ad-slot', payload)
+    return response.data
+  },
+
+  getMyOrders: async () => {
+    const response = await authenticatedRequest.get('/commerce/my-orders')
+    return response.data as { orders?: unknown[] }
+  },
+
+  confirmStub: async (orderId: string) => {
+    const response = await authenticatedRequest.post(`/commerce/orders/${orderId}/confirm-stub`)
+    return response.data
   }
 }
 
 export const searchApi = {
   search: async (query: string) => {
-    const response = await fetch(`${config.API_URL}/publications/search?q=${query}`, fetchConfig)
+    const response = await fetch(
+      `${config.API_URL}/publications/search?q=${encodeURIComponent(query)}`,
+      fetchConfig
+    )
     return handleResponse(response)
   }
 }
 
 export const authApi = {
   initiateGoogleAuth: () => {
-    window.location.href = `${config.API_URL}/auth/google`
+    try {
+      const ref = sessionStorage.getItem('referralCode')
+      const q = ref ? `?ref=${encodeURIComponent(ref)}` : ''
+      window.location.href = `${config.API_URL}/auth/google${q}`
+    } catch {
+      window.location.href = `${config.API_URL}/auth/google`
+    }
   },
 
   verifyAuth: async (token: string) => {
@@ -479,7 +589,12 @@ export const authApi = {
       credentials: 'include',
       body: JSON.stringify({ t: token, token })
     })
-    return response.json()
+    const data = await response.json()
+    if (response.ok && data.user) {
+      storage.removeToken()
+      storage.setUser(data.user)
+    }
+    return data
   }
 }
 
@@ -529,5 +644,32 @@ export const bannerApi = {
   getList: async () => {
     const response = await fetch(`${config.API_URL}/banner/list`)
     return handleResponse(response)
+  }
+}
+
+export const socialApi = {
+  follow: async (userId: string) => {
+    const response = await authenticatedRequest.post(`/social/follow/${userId}`)
+    return response.data as { following: boolean }
+  },
+  unfollow: async (userId: string) => {
+    const response = await authenticatedRequest.delete(`/social/follow/${userId}`)
+    return response.data as { following: boolean }
+  },
+  followStatus: async (userId: string) => {
+    const response = await authenticatedRequest.get(`/social/follow-status/${userId}`)
+    return response.data as {
+      followersCount: number
+      followingCount: number
+      following: boolean
+    }
+  },
+  recordSignal: async (payload: {
+    type: 'view_publication' | 'category_view'
+    publicationId?: string
+    categoryKey?: string
+  }) => {
+    const response = await authenticatedRequest.post('/social/signals', payload)
+    return response.data as { ok?: boolean }
   }
 }

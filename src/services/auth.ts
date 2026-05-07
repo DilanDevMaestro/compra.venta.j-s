@@ -2,7 +2,13 @@ import { config } from '../config/config'
 import storage from './storage'
 
 export const loginWithGoogle = (): void => {
-  window.location.href = `${config.API_URL}/auth/google`
+  try {
+    const ref = sessionStorage.getItem('referralCode')
+    const q = ref ? `?ref=${encodeURIComponent(ref)}` : ''
+    window.location.href = `${config.API_URL}/auth/google${q}`
+  } catch {
+    window.location.href = `${config.API_URL}/auth/google`
+  }
 }
 
 // Handle auth callback: verify token with backend and store only user
@@ -12,14 +18,14 @@ export const handleAuthCallback = async (token: string): Promise<boolean> => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       credentials: 'include',
-      body: JSON.stringify({ token })
+      body: JSON.stringify({ t: token, token })
     })
 
     if (!response.ok) return false
 
     const data = await response.json()
     if (data.user) {
-      if (data.token) storage.setToken(data.token)
+      storage.removeToken()
       storage.setUser(data.user)
       return true
     }
@@ -79,6 +85,7 @@ export const checkAuthStatus = async (): Promise<Record<string, unknown> | null>
 export const logout = async (): Promise<void> => {
   try {
     await fetch(`${config.API_URL}/auth/logout`, { method: 'POST', credentials: 'include' })
+    storage.removeToken()
     localStorage.removeItem('user')
     window.location.href = '/'
   } catch (e) {

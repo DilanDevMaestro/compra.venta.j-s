@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { categories as fallbackCategories } from '../data/categories'
-import { publicationsApi } from '../services/api'
+import { publicationsApi, socialApi } from '../services/api'
+import storage from '../services/storage'
 import { config } from '../config/config'
 import { CategorySidebar } from '../components/home/CategorySidebar'
 import { SubcategoryModal } from '../components/home/SubcategoryModal'
@@ -49,6 +50,7 @@ export function CategoryPage() {
   }
   const [categories, setCategories] = useState(fallbackCategories)
   const [items, setItems] = useState<Listing[]>([])
+  const [boostedItems, setBoostedItems] = useState<Listing[]>([])
   const [loading, setLoading] = useState(false)
   const [selectedSubcategory, setSelectedSubcategory] = useState('')
   const [showSubcategories, setShowSubcategories] = useState(false)
@@ -97,7 +99,10 @@ export function CategoryPage() {
     if (!categorySlug) return
     setLoading(true)
     try {
-      const data = await publicationsApi.getByCategory(categorySlug, selectedSubcategory || undefined)
+      const [data, boostRaw] = await Promise.all([
+        publicationsApi.getByCategory(categorySlug, selectedSubcategory || undefined),
+        publicationsApi.getBoosted(categorySlug)
+      ])
       const list = Array.isArray(data) ? data : data?.publications || []
       const mapped = list.map((pub: RawPublication) => ({
         id: String(pub._id ?? ''),
@@ -110,9 +115,24 @@ export function CategoryPage() {
           'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1200&auto=format&fit=crop'
       })) as Listing[]
       setItems(mapped)
+
+      const boostList = Array.isArray(boostRaw) ? boostRaw : []
+      setBoostedItems(
+        boostList.map((pub: RawPublication) => ({
+          id: String(pub._id ?? ''),
+          title: String(pub.nombre ?? ''),
+          price: Number(pub.precio) || 0,
+          location: pub.categoria || 'Argentina',
+          subcategory: String(pub.subcategoria || pub.subCategory || pub.subcategory || pub.sub_categoria || ''),
+          imageUrl:
+            pub.imagenes?.[0]?.url ||
+            'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1200&auto=format&fit=crop'
+        })) as Listing[]
+      )
     } catch (error) {
       console.error('Error loading category:', error)
       setItems([])
+      setBoostedItems([])
     } finally {
       setLoading(false)
     }
@@ -129,6 +149,12 @@ export function CategoryPage() {
   useEffect(() => {
     loadCategory()
   }, [loadCategory])
+
+  useEffect(() => {
+    if (!categorySlug || !storage.getToken()) return
+    const key = resolveCategoryKey(slugToCategoryKey(categorySlug))
+    void socialApi.recordSignal({ type: 'category_view', categoryKey: key }).catch(() => {})
+  }, [categorySlug])
 
   useEffect(() => {
     const eventsUrl = `${config.API_URL}/events`
@@ -219,11 +245,16 @@ export function CategoryPage() {
               {loading ? (
                 <div className="text-xs text-muted">Cargando publicaciones...</div>
               ) : (
-                <ListingSection
-                  title="Resultados"
-                  items={filteredItems}
-                  gridClassName="grid gap-1.5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
-                />
+                <>
+                  {boostedItems.length > 0 ? (
+                    <ListingSection title="Impulsadas en esta categoría" items={boostedItems} layout="scroll" />
+                  ) : null}
+                  <ListingSection
+                    title="Resultados"
+                    items={filteredItems}
+                    gridClassName="grid gap-1.5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+                  />
+                </>
               )}
             </div>
           </div>

@@ -11,12 +11,19 @@ export function AuthHandler() {
     const handleAuth = async () => {
       try {
         const searchParams = new URLSearchParams(window.location.search)
-        const tokenParam = searchParams.get('t')
+        const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+        const tokenParam =
+          hashParams.get('t') || searchParams.get('t') || searchParams.get('token')
         const code = searchParams.get('code')
 
         if (!tokenParam && !code) {
           throw new Error('No authorization data found')
         }
+
+        const referralRaw =
+          typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('referralCode') : null
+        const referralCode =
+          referralRaw && referralRaw.trim() ? referralRaw.trim().slice(0, 64) : undefined
 
         const response = await fetch(
           tokenParam ? `${config.API_URL}/auth/verify` : `${config.API_URL}/auth/google/callback`,
@@ -26,7 +33,11 @@ export function AuthHandler() {
             headers: {
               'Content-Type': 'application/json'
             },
-            body: JSON.stringify(tokenParam ? { t: tokenParam } : { code })
+            body: JSON.stringify(
+              tokenParam
+                ? { t: tokenParam, token: tokenParam }
+                : { code, ...(referralCode ? { referralCode } : {}) }
+            )
           }
         )
 
@@ -36,9 +47,11 @@ export function AuthHandler() {
 
         const data = await response.json()
         if (data.user) {
-          // Backend sets httpOnly cookie for token; store only sanitized user
-          if (data.token) storage.setToken(data.token)
+          storage.removeToken()
           storage.setUser(data.user)
+          if (window.location.hash) {
+            window.history.replaceState(null, '', window.location.pathname + window.location.search)
+          }
           navigate('/perfil', { replace: true })
           return
         }

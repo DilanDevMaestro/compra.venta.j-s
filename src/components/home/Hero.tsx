@@ -41,12 +41,18 @@ export function Hero({ adminBanners }: HeroProps) {
     <section className="mt-4 space-y-8">
       <div className="relative overflow-hidden rounded-2xl bg-surface shadow-soft">
         <div className="aspect-[1920/500] w-full bg-background">
-          {combined.map((item, i) => (
+          {combined.map((item, i) => {
+            const bannerHref =
+              item.banner?.buttonUrl &&
+              /^https:\/\//i.test(item.banner.buttonUrl.trim())
+                ? item.banner.buttonUrl.trim()
+                : undefined
+            return (
             <div key={`${item.src}-${i}`} className={`absolute inset-0 h-full w-full transition-opacity duration-700 ${i === index ? 'opacity-100' : 'opacity-0'}`}>
               <img src={item.src} alt={`Banner ${i + 1}`} className="h-full w-full object-contain" loading="lazy" />
-              {item.banner?.buttonText && item.banner?.buttonUrl ? (
+              {item.banner?.buttonText && bannerHref ? (
                 <a
-                  href={item.banner.buttonUrl}
+                  href={bannerHref}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={`absolute z-10 rounded-full border border-white/60 bg-black/60 px-3 py-1 text-[11px] font-semibold text-white shadow-lg backdrop-blur ${
@@ -63,7 +69,8 @@ export function Hero({ adminBanners }: HeroProps) {
                 </a>
               ) : null}
             </div>
-          ))}
+            )
+          })}
         </div>
         <div className="absolute bottom-3 left-1/2 flex -translate-x-1/2 gap-2 z-20">
           {combined.map((_, i) => (

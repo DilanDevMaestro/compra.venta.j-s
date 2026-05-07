@@ -11,6 +11,7 @@ import { OfertasPage } from './pages/OfertasPage'
 import { LocationPage } from './pages/LocationPage'
 import { LocationRequiredModal } from './components/profile/LocationRequiredModal'
 import { AdminDashboardPage } from './pages/AdminDashboardPage'
+import { LegalPlaceholderPage } from './pages/LegalPlaceholderPage'
 
 function App() {
   useEffect(() => {
@@ -33,6 +34,18 @@ function App() {
     return () => window.removeEventListener('storage', onStorage)
   }, [])
 
+  useEffect(() => {
+    try {
+      const p = new URLSearchParams(window.location.search)
+      const ref = p.get('ref')
+      if (ref?.trim()) {
+        sessionStorage.setItem('referralCode', ref.trim().slice(0, 64))
+      }
+    } catch {
+      /* ignore */
+    }
+  }, [])
+
   return (
     <>
       <LocationRequiredModal />
@@ -48,6 +61,9 @@ function App() {
         <Route path="/auth/google/callback" element={<AuthPage />} />
         <Route path="/perfil" element={<PerfilPage />} />
         <Route path="/admin" element={<AdminDashboardPage />} />
+        <Route path="/privacidad" element={<LegalPlaceholderPage title="Privacidad" />} />
+        <Route path="/terminos" element={<LegalPlaceholderPage title="Términos" />} />
+        <Route path="/ayuda" element={<LegalPlaceholderPage title="Ayuda" />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
