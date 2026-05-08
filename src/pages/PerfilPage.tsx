@@ -715,7 +715,7 @@ export function PerfilPage() {
                 <div
                   className={
                     isBusinessActive
-                      ? 'mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4'
+                      ? 'mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5'
                       : 'mt-3 grid grid-cols-2 gap-2 sm:grid-cols-2 sm:gap-3'
                   }
                 >
@@ -918,8 +918,8 @@ export function PerfilPage() {
               <div
                 className={
                   isShortcutsOpen
-                    ? 'mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4'
-                    : 'mt-3 hidden sm:grid sm:grid-cols-3 sm:gap-3 lg:grid-cols-4'
+                    ? 'mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5'
+                    : 'mt-3 hidden sm:grid sm:grid-cols-3 sm:gap-3 md:grid-cols-4 lg:grid-cols-5'
                 }
               >
                 <button
@@ -973,7 +973,7 @@ export function PerfilPage() {
               {loading ? (
                 <p className="mt-3 text-xs text-muted">Cargando...</p>
               ) : publications.length ? (
-                <ul className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-5">
+                <ul className="mt-3 grid gap-1.5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
                   {publications.map((pub) => (
                     <li key={pub._id} className="mb-4">
                       <div>

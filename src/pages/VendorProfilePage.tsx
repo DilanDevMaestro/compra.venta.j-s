@@ -6,6 +6,7 @@ import storage from '../services/storage'
 import { Header } from '../components/layout/Header'
 import { Footer } from '../components/layout/Footer'
 import { ListingSection } from '../components/home/ListingSection'
+import { normalizeExternalUrl } from '../utils/externalUrl'
 
 type PubRow = {
   _id?: string
@@ -103,6 +104,20 @@ export function VendorProfilePage() {
   }), [])
 
   const vistasLoaded = useMemo(() => items.reduce((s, p) => s + (p.vistas ?? 0), 0), [items])
+
+  const socialLinksList = useMemo(() => {
+    const sl = summary?.socialLinks
+    if (!sl || !summary?.isBusiness) return []
+    const pairs: { key: string; label: string; raw: string }[] = [
+      { key: 'fb', label: 'Facebook', raw: sl.facebook || '' },
+      { key: 'ig', label: 'Instagram', raw: sl.instagram || '' },
+      { key: 'tt', label: 'TikTok', raw: sl.tiktok || '' },
+      { key: 'web', label: 'Sitio web', raw: sl.website || '' }
+    ]
+    return pairs
+      .map((p) => ({ ...p, href: normalizeExternalUrl(p.raw) }))
+      .filter((p) => p.href !== '')
+  }, [summary?.socialLinks, summary?.isBusiness])
 
   const loadInitial = useCallback(async () => {
     if (!userId) return
@@ -262,61 +277,51 @@ export function VendorProfilePage() {
               </div>
             </div>
 
-            {summary?.isBusiness && summary.description ? (
-              <p className="px-4 pb-2 text-[12px] text-muted leading-relaxed">{summary.description}</p>
-            ) : null}
+            {!loading && summary?.isBusiness ? (
+              <div className="space-y-3 px-4 pb-4">
+                {summary.description?.trim() ? (
+                  <div className="rounded-xl border border-card/40 bg-surface/90 p-4 shadow-[0_8px_24px_-18px_rgba(0,0,0,0.35)] dark:border-slate-700/55 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(0,0,0,0.12)_100%)]">
+                    <h3 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
+                      Descripción del negocio
+                    </h3>
+                    <p className="mt-2 text-[13px] leading-relaxed text-foreground">{summary.description.trim()}</p>
+                  </div>
+                ) : null}
 
-            <div className="flex flex-wrap gap-2 px-4 pb-4">
-              {summary?.isBusiness ? (
-                <span className="rounded-full border border-black/10 bg-surface px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-foreground dark:border-slate-700/60">
-                  Perfil empresa
-                </span>
-              ) : (
+                {socialLinksList.length > 0 ? (
+                  <div className="rounded-xl border border-card/40 bg-surface/90 p-4 shadow-[0_8px_24px_-18px_rgba(0,0,0,0.35)] dark:border-slate-700/55 dark:bg-[linear-gradient(180deg,rgba(255,255,255,0.06)_0%,rgba(0,0,0,0.12)_100%)]">
+                    <h3 className="text-[10px] font-semibold uppercase tracking-[0.2em] text-muted">
+                      Redes y contacto
+                    </h3>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {socialLinksList.map((link) => (
+                        <a
+                          key={link.key}
+                          href={link.href}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-full border border-black/10 bg-surface px-3 py-1.5 text-[10px] font-semibold uppercase tracking-widest text-foreground transition hover:border-primary/40 hover:text-primary dark:border-slate-700/60"
+                        >
+                          {link.label}
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <span className="rounded-full border border-black/10 bg-surface px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-foreground dark:border-slate-700/60">
+                    Perfil empresa
+                  </span>
+                </div>
+              </div>
+            ) : !loading && summary ? (
+              <div className="flex flex-wrap gap-2 px-4 pb-4">
                 <span className="rounded-full border border-black/10 bg-surface px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-muted dark:border-slate-700/60">
                   Perfil personal
                 </span>
-              )}
-              {summary?.isBusiness && summary.socialLinks?.facebook ? (
-                <a
-                  href={summary.socialLinks.facebook}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-full border border-black/10 bg-surface px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-foreground dark:border-slate-700/60"
-                >
-                  Facebook
-                </a>
-              ) : null}
-              {summary?.isBusiness && summary.socialLinks?.instagram ? (
-                <a
-                  href={summary.socialLinks.instagram}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-full border border-black/10 bg-surface px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-foreground dark:border-slate-700/60"
-                >
-                  Instagram
-                </a>
-              ) : null}
-              {summary?.isBusiness && summary.socialLinks?.tiktok ? (
-                <a
-                  href={summary.socialLinks.tiktok}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-full border border-black/10 bg-surface px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-foreground dark:border-slate-700/60"
-                >
-                  TikTok
-                </a>
-              ) : null}
-              {summary?.isBusiness && summary.socialLinks?.website ? (
-                <a
-                  href={summary.socialLinks.website}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="rounded-full border border-black/10 bg-surface px-2 py-1 text-[10px] font-semibold uppercase tracking-widest text-foreground dark:border-slate-700/60"
-                >
-                  Sitio web
-                </a>
-              ) : null}
-            </div>
+              </div>
+            ) : null}
           </div>
 
           {followMsg ? <p className="mt-3 text-[11px] text-amber-700 dark:text-amber-400">{followMsg}</p> : null}
@@ -365,7 +370,7 @@ export function VendorProfilePage() {
                 <ListingSection
                   title="Publicaciones"
                   items={items}
-                  gridClassName="grid gap-1.5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+                  gridClassName="grid gap-1.5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
                 />
               </div>
               {hasMore ? (

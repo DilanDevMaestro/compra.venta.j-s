@@ -278,7 +278,7 @@ export function CategoryPage() {
                   <ListingSection
                     title="Resultados"
                     items={filteredItems}
-                    gridClassName="grid gap-1.5 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5"
+                    gridClassName="grid gap-1.5 grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5"
                   />
                   {items.length < totalResults ? (
                     <div className="mt-4 flex justify-center">
