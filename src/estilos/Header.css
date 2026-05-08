@@ -1,0 +1,1377 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: linear-gradient(to right, #2c3e50, #3498db);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 9px 24px rgb(0 0 0 / 52%);
+  position: relative;
+}
+
+.logo-container {
+  height: 50px;
+  z-index: 2;
+}
+
+.logo {
+  height: 100%;
+  max-width: 200px;
+  object-fit: contain;
+}
+
+.header-controls {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.nav-menu {
+  display: flex;
+  gap: 2rem;
+}
+
+.nav-menu a {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.3s;
+}
+
+.nav-menu a:hover {
+  opacity: 0.8;
+}
+
+.theme-toggle {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: white;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: background-color 0.3s;
+}
+
+.login-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1.5rem;
+  border-radius: 20px;
+  border: none;
+  background-color: #4285f4;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.login-button:hover {
+  background-color: #3367d6;
+  transform: translateY(-1px);
+}
+
+.login-button .google-icon {
+  font-size: 1.2rem;
+}
+
+.menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  cursor: pointer;
+  z-index: 2;
+}
+
+.user-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background: var(--bg-primary);
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  display: none;
+  min-width: 200px;
+  z-index: 15;
+}
+
+.user-profile {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.user-profile:hover .user-dropdown {
+  display: block;
+}
+
+.user-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 20px;
+  transition: background-color 0.3s;
+}
+
+.user-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.profile-pic {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  cursor: pointer;
+  border: 2px solid white;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  right: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+  min-width: 250px;
+  z-index: 1000;
+}
+
+.dropdown-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #eee;
+  margin-bottom: 1rem;
+  flex-direction: column;
+}
+
+.dropdown-header img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.user-name {
+  display: block;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.user-email {
+  font-size: 0.7rem;
+  color: #666;
+}
+
+.logout-button {
+  width: 100%;
+  padding: 0.5rem;
+  border: none;
+  border-radius: 4px;
+  background: #dc3545;
+  color: white;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.logout-button:hover {
+  background: #c82333;
+}
+
+/* Dark mode adjustments */
+body.dark-mode .dropdown-menu {
+  background: #2c3e50;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .user-name {
+  color: white;
+}
+
+body.dark-mode .user-email {
+  color: #ccc;
+}
+
+body.dark-mode .logout-button {
+  background-color: #1a1a1a;
+  color: white;
+}
+
+body.dark-mode .logout-button:hover {
+  background-color: #333;
+}
+
+/* Estilos responsive */
+@media (max-width: 768px) {
+  /* Forzar que el header se quede por encima de todo */
+  .header {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100000;
+    padding: 0;
+    background: #1d1d27;
+    height: auto;
+  }
+
+  .menu-toggle {
+    display: none;
+  }
+
+  .header-controls {
+    position: relative;
+    width: 100%;
+    height: auto;
+    background: none;
+    padding: 0.5rem;
+    transition: all 0.3s ease;
+    opacity: 1;
+    visibility: visible;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+  }
+
+  .nav-menu {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    margin: 0;
+    padding: 0.5rem;
+    justify-content: space-around;
+  }
+
+  .nav-menu a {
+    font-size: 1.2rem;
+    padding: 0.5rem;
+    width: auto;
+    text-align: center;
+    border: none;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .nav-menu a svg {
+    width: 1.8em;
+    height: 1.8em;
+    stroke: white;
+    fill: transparent;
+    stroke-width: 1pt;
+    transition: transform 0.3s;
+  }
+
+  .nav-menu a.active {
+    transform: translateY(-0.8em);
+  }
+
+  .nav-menu a.active svg {
+    transform: scale(1.2);
+  }
+
+  .nav-menu a::before {
+    content: "";
+    position: absolute;
+    width: 3.2em;
+    height: 3.2em;
+    border-radius: 50%;
+    background-color: #ff8c00;
+    z-index: -1;
+    transform: scale(0);
+    transition: transform 0.3s;
+  }
+
+  .nav-menu a.active::before {
+    transform: scale(1);
+  }
+
+  .theme-toggle,
+  .login-button,
+  .logo-container {
+    display: none;
+  }
+}
+
+/* Estilos para tablets */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .header {
+    padding: 1rem;
+  }
+
+  .nav-menu {
+    gap: 1rem;
+  }
+}
+
+/* Ajuste para modo claro */
+body:not(.dark-mode) .header {
+  background: linear-gradient(to right, #2980b9, #000000);
+}
+
+/* Estilos compartidos */
+.logo {
+  height: 100%;
+  max-width: 200px;
+  object-fit: contain;
+}
+
+/* Header versión desktop */
+.desktop-header {
+  display: grid;
+  grid-template-columns: 200px 1fr auto;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: linear-gradient(to right, #0069ff6e, #44db58);
+  box-shadow: 0 2px 10px rgb(255 255 255 / 46%);
+}
+
+.center-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 0 2rem;
+}
+
+.right-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.home-link {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.3s;
+}
+
+.home-link:hover {
+  opacity: 0.8;
+}
+
+/* Ajustar el ancho del SearchBar para que quede centrado */
+.search-container {
+  width: 100%;
+  max-width: 600px;
+}
+
+.desktop-header .nav-menu {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+}
+
+.desktop-header .nav-menu a {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.3s;
+}
+
+.desktop-header .nav-menu a:hover {
+  opacity: 0.8;
+}
+
+.theme-toggle {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: white;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.login-button {
+  padding: 0.5rem 1.5rem;
+  border-radius: 20px;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #1a1a1a;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+/* Estilos móviles */
+.mobile-header, .mobile-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* Ocultar versión desktop */
+  .desktop-header {
+    display: none;
+  }
+
+  /* Mostrar header móvil */
+  .mobile-header {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(to right, #2c3e50, #3498db);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+  }
+
+  .mobile-logo {
+    height: 40px;
+    margin: 0 auto;
+  }
+
+  /* Menú de navegación inferior */
+  .mobile-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #1d1d27;
+    justify-content: space-around;
+    padding: 0.8rem;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+  }
+
+  .mobile-nav a {
+    color: white;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.3s;
+  }
+
+  .mobile-nav a svg {
+    font-size: 1.5rem;
+  }
+
+  .mobile-nav a span {
+    font-size: 0.75rem;
+  }
+
+  .mobile-nav a.active {
+    color: #3498db;
+    transform: translateY(-0.5rem);
+  }
+
+  .mobile-nav a.active::before {
+    content: '';
+    position: absolute;
+    top: -0.5rem;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #3498db;
+  }
+}
+
+/* Ajuste para modo claro */
+body:not(.dark-mode) .mobile-nav {
+  background: #ffffff;
+}
+
+body:not(.dark-mode) .mobile-nav a {
+  color: #1a1a1a;
+}
+
+body:not(.dark-mode) .mobile-nav a.active {
+  color: #3498db;
+}
+
+/* Estilos para el header móvil actualizado */
+.mobile-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(to right, #2c3e50, #3498db);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  z-index: 1000;
+  padding: 0.5rem;
+}
+
+.mobile-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+}
+
+.mobile-logo-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.mobile-logo {
+  height: 40px;
+  object-fit: contain;
+}
+
+.mobile-auth {
+  position: absolute;
+  right: 1rem;
+}
+
+.mobile-login-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 0.9rem;
+}
+
+.mobile-profile {
+  position: relative;
+}
+
+.mobile-profile-pic {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+.mobile-dropdown {
+  position: fixed;
+  top: 60px;
+  right: 10px;
+  background: var(--bg-primary);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  width: 280px;
+  z-index: 1000;
+}
+
+.mobile-dropdown-content {
+  padding: 1rem;
+}
+
+.mobile-user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+}
+
+.mobile-user-info img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-color);
+}
+
+.mobile-user-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-user-name {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-user-email {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-dropdown-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mobile-menu-button {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.mobile-menu-button:hover {
+  background: var(--bg-hover);
+}
+
+.mobile-menu-button svg {
+  font-size: 1.2rem;
+  color: var(--accent-color);
+}
+
+.mobile-logout-button {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  padding: 0.8rem;
+  margin-top: 0.5rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--error-color);
+  color: white;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mobile-logout-button:hover {
+  opacity: 0.9;
+}
+
+/* Ajuste para el menú de navegación inferior */
+.mobile-nav {
+  margin-top: 60px; /* Espacio para el header móvil */
+}
+
+/* Dark mode adjustments */
+body.dark-mode .mobile-dropdown {
+  background: #2c3e50;
+}
+
+body.dark-mode .mobile-user-name {
+  color: white;
+}
+
+body.dark-mode .mobile-user-email {
+  color: #ccc;
+}
+
+/* ...existing styles... */
+
+.nav-button {
+  background: none;
+  border: none;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+.nav-button.active {
+  color: #3498db;
+  transform: translateY(-0.5rem);
+}
+
+.nav-button span {
+  font-size: 0.75rem;
+}
+
+/* ...rest of existing styles... */
+
+.publish-button-desktop {
+  padding: 0.5rem 1.5rem;
+  background: var(--accent-color);
+  color: white;
+  border-radius: 20px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.publish-button-desktop:hover {
+  background: var(--accent-color-dark);
+  transform: translateY(-2px);
+}
+
+.dropdown-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 0;
+}
+
+.dropdown-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1rem;
+  width: 100%;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background-color 0.3s;
+  text-decoration: none;
+}
+
+.dropdown-button:hover {
+  background: var(--bg-hover);
+}
+
+.dropdown-button svg {
+  font-size: 1.2rem;
+  color: var(--accent-color);
+}
+
+/* Estilos para móvil */
+.mobile-dropdown-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 0;
+}
+
+.mobile-menu-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem;
+  width: 100%;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  text-decoration: none;
+  border-radius: 8px;
+}
+
+.mobile-menu-button:hover {
+  background: var(--bg-hover);
+}
+
+/* ...rest of existing styles... */
+
+/* Dark mode adjustments */
+body.dark-mode .dropdown-menu {
+  background: #2c3e50;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+body.dark-mode .user-name {
+  color: white;
+}
+
+body.dark-mode .user-email {
+  color: #ccc;
+}
+
+body.dark-mode .logout-button {
+  background-color: #1a1a1a;
+  color: white;
+}
+
+body.dark-mode .logout-button:hover {
+  background-color: #333;
+}
+
+/* Estilos responsive */
+@media (max-width: 768px) {
+  /* Forzar que el header se quede por encima de todo */
+  .header {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    z-index: 100000;
+    padding: 0;
+    background: #1d1d27;
+    height: auto;
+  }
+
+  .menu-toggle {
+    display: none;
+  }
+
+  .header-controls {
+    position: relative;
+    width: 100%;
+    height: auto;
+    background: none;
+    padding: 0.5rem;
+    transition: all 0.3s ease;
+    opacity: 1;
+    visibility: visible;
+    display: flex;
+    flex-direction: row;
+    justify-content: space-around;
+  }
+
+  .nav-menu {
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    margin: 0;
+    padding: 0.5rem;
+    justify-content: space-around;
+  }
+
+  .nav-menu a {
+    font-size: 1.2rem;
+    padding: 0.5rem;
+    width: auto;
+    text-align: center;
+    border: none;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .nav-menu a svg {
+    width: 1.8em;
+    height: 1.8em;
+    stroke: white;
+    fill: transparent;
+    stroke-width: 1pt;
+    transition: transform 0.3s;
+  }
+
+  .nav-menu a.active {
+    transform: translateY(-0.8em);
+  }
+
+  .nav-menu a.active svg {
+    transform: scale(1.2);
+  }
+
+  .nav-menu a::before {
+    content: "";
+    position: absolute;
+    width: 3.2em;
+    height: 3.2em;
+    border-radius: 50%;
+    background-color: #ff8c00;
+    z-index: -1;
+    transform: scale(0);
+    transition: transform 0.3s;
+  }
+
+  .nav-menu a.active::before {
+    transform: scale(1);
+  }
+
+  .theme-toggle,
+  .login-button,
+  .logo-container {
+    display: none;
+  }
+}
+
+/* Estilos para tablets */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .header {
+    padding: 1rem;
+  }
+
+  .nav-menu {
+    gap: 1rem;
+  }
+}
+
+/* Ajuste para modo claro */
+body:not(.dark-mode) .header {
+  background: linear-gradient(to right, #2980b9, #000000);
+}
+
+/* Estilos compartidos */
+.logo {
+  height: 100%;
+  max-width: 200px;
+  object-fit: contain;
+}
+
+/* Header versión desktop */
+.desktop-header {
+  display: grid;
+  grid-template-columns: 200px 1fr auto;
+  align-items: center;
+  padding: 1rem 2rem;
+  background: linear-gradient(to right, #0069ff6e, #44db58);
+  box-shadow: 0 2px 10px rgb(255 255 255 / 46%);
+}
+
+.center-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  padding: 0 2rem;
+}
+
+.right-controls {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+}
+
+.home-link {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.3s;
+}
+
+.home-link:hover {
+  opacity: 0.8;
+}
+
+/* Ajustar el ancho del SearchBar para que quede centrado */
+.search-container {
+  width: 100%;
+  max-width: 600px;
+}
+
+.desktop-header .nav-menu {
+  display: flex;
+  gap: 2rem;
+  align-items: center;
+}
+
+.desktop-header .nav-menu a {
+  color: white;
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.3s;
+}
+
+.desktop-header .nav-menu a:hover {
+  opacity: 0.8;
+}
+
+.theme-toggle {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: white;
+  padding: 0.5rem;
+  border-radius: 50%;
+  transition: all 0.3s;
+}
+
+.login-button {
+  padding: 0.5rem 1.5rem;
+  border-radius: 20px;
+  border: none;
+  background-color: rgba(255, 255, 255, 0.9);
+  color: #1a1a1a;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+/* Estilos móviles */
+.mobile-header, .mobile-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* Ocultar versión desktop */
+  .desktop-header {
+    display: none;
+  }
+
+  /* Mostrar header móvil */
+  .mobile-header {
+    display: flex;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    background: linear-gradient(to right, #2c3e50, #3498db);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+  }
+
+  .mobile-logo {
+    height: 40px;
+    margin: 0 auto;
+  }
+
+  /* Menú de navegación inferior */
+  .mobile-nav {
+    display: flex;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #1d1d27;
+    justify-content: space-around;
+    padding: 0.8rem;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+  }
+
+  .mobile-nav a {
+    color: white;
+    text-decoration: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem;
+    border-radius: 8px;
+    transition: all 0.3s;
+  }
+
+  .mobile-nav a svg {
+    font-size: 1.5rem;
+  }
+
+  .mobile-nav a span {
+    font-size: 0.75rem;
+  }
+
+  .mobile-nav a.active {
+    color: #3498db;
+    transform: translateY(-0.5rem);
+  }
+
+  .mobile-nav a.active::before {
+    content: '';
+    position: absolute;
+    top: -0.5rem;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #3498db;
+  }
+}
+
+/* Ajuste para modo claro */
+body:not(.dark-mode) .mobile-nav {
+  background: #ffffff;
+}
+
+body:not(.dark-mode) .mobile-nav a {
+  color: #1a1a1a;
+}
+
+body:not(.dark-mode) .mobile-nav a.active {
+  color: #3498db;
+}
+
+/* Estilos para el header móvil actualizado */
+.mobile-header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: linear-gradient(to right, #2c3e50, #3498db);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+  z-index: 1000;
+  padding: 0.5rem;
+}
+
+.mobile-header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem;
+}
+
+.mobile-logo-container {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+}
+
+.mobile-logo {
+  height: 40px;
+  object-fit: contain;
+}
+
+.mobile-auth {
+  position: absolute;
+  right: 1rem;
+}
+
+.mobile-login-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 20px;
+  background-color: rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 0.9rem;
+}
+
+.mobile-profile {
+  position: relative;
+}
+
+.mobile-profile-pic {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+.mobile-dropdown {
+  position: fixed;
+  top: 60px;
+  right: 10px;
+  background: var(--bg-primary);
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  width: 280px;
+  z-index: 1000;
+}
+
+.mobile-dropdown-content {
+  padding: 1rem;
+}
+
+.mobile-user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  margin-bottom: 1rem;
+}
+
+.mobile-user-info img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid var(--accent-color);
+}
+
+.mobile-user-details {
+  flex: 1;
+  min-width: 0;
+}
+
+.mobile-user-name {
+  display: block;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-user-email {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mobile-dropdown-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.mobile-menu-button {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.8rem;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  font-size: 0.95rem;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.mobile-menu-button:hover {
+  background: var(--bg-hover);
+}
+
+.mobile-menu-button svg {
+  font-size: 1.2rem;
+  color: var(--accent-color);
+}
+
+.mobile-logout-button {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  padding: 0.8rem;
+  margin-top: 0.5rem;
+  border: none;
+  border-radius: 8px;
+  background: var(--error-color);
+  color: white;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mobile-logout-button:hover {
+  opacity: 0.9;
+}
+
+/* Ajuste para el menú de navegación inferior */
+.mobile-nav {
+  margin-top: 60px; /* Espacio para el header móvil */
+}
+
+/* Dark mode adjustments */
+body.dark-mode .mobile-dropdown {
+  background: #2c3e50;
+}
+
+body.dark-mode .mobile-user-name {
+  color: white;
+}
+
+body.dark-mode .mobile-user-email {
+  color: #ccc;
+}
+
+/* ...existing styles... */
+
+.nav-button {
+  background: none;
+  border: none;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem;
+  border-radius: 8px;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+.nav-button.active {
+  color: #3498db;
+  transform: translateY(-0.5rem);
+}
+
+.nav-button span {
+  font-size: 0.75rem;
+}
+
+/* ...rest of existing styles... */
+
+.publish-button-desktop {
+  padding: 0.5rem 1.5rem;
+  background: var(--accent-color);
+  color: white;
+  border-radius: 20px;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.publish-button-desktop:hover {
+  background: var(--accent-color-dark);
+  transform: translateY(-2px);
+}
+
+.dropdown-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 0;
+}
+
+.dropdown-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem 1rem;
+  width: 100%;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background-color 0.3s;
+  text-decoration: none;
+}
+
+.dropdown-button:hover {
+  background: var(--bg-hover);
+}
+
+.dropdown-button svg {
+  font-size: 1.2rem;
+  color: var(--accent-color);
+}
+
+/* Estilos para móvil */
+.mobile-dropdown-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1rem 0;
+}
+
+.mobile-menu-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.8rem;
+  width: 100%;
+  border: none;
+  background: none;
+  color: var(--text-primary);
+  text-decoration: none;
+  border-radius: 8px;
+}
+
+.mobile-menu-button:hover {
+  background: var(--bg-hover);
+}
+
+

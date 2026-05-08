@@ -1,0 +1,20 @@
+.home {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.main-content {
+  flex: 1;
+  padding: 1rem;
+}
+
+@media (max-width: 768px) {
+  .main-content {
+    padding-bottom: calc(60px + 1rem); /* Altura del footer + espacio extra */
+  }
+  
+  .content-layout {
+    margin-bottom: 2rem;
+  }
+}

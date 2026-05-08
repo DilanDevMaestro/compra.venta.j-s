@@ -1,0 +1,267 @@
+.page-container {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.category-content {
+  flex: 1;
+  padding: 2rem;
+  padding-bottom: 4rem; /* Add padding to the bottom */
+}
+
+.category-content h1 {
+  text-align: center;
+  margin-bottom: 2rem;
+  color: var(--text-primary);
+  font-size: 2rem;
+}
+
+.category-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.category-page h1 {
+  font-size: 2.5rem;
+  margin-bottom: 2rem;
+  color: var(--text-primary);
+  text-transform: capitalize;
+}
+
+.loading, .no-publications {
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.2rem;
+  color: var(--text-secondary);
+}
+
+.category-publications {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 2rem;
+  padding: 1rem;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.publication-card {
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+  display: flex;
+  flex-direction: row;
+  height: 80px;
+  padding: 0.5rem;
+  gap: 1rem;
+  border-bottom: 1px solid var(--border-color);
+  margin: 0;
+  align-items: center;
+  background: var(--bg-primary);
+}
+
+.publication-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.publication-card img {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.publication-info {
+  padding: 1rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0;
+}
+
+.info-left {
+  flex: 1;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.info-left h3 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.price {
+  color: #2ecc71;
+  font-weight: bold;
+  font-size: 1.2rem;
+  margin: 0;
+  font-size: 1rem;
+  margin: 0;
+  color: var(--accent-color);
+}
+
+.ver-button {
+  padding: 0.5rem 1rem;
+  background: #3498db;
+  color: white;
+  border: none;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  padding: 0.3rem 0.8rem;
+  border-radius: 15px;
+  font-size: 0.8rem;
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+.ver-button:hover {
+  background: #2980b9;
+  opacity: 0.9;
+}
+
+.description {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  margin: 0.5rem 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.4;
+}
+
+.publication-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: -0.5rem;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .category-content {
+    padding: 1rem;
+    padding-bottom: 5rem; /* Add more padding on mobile */
+  }
+
+  .category-page {
+    padding: 0;
+  }
+
+  .category-page h1 {
+    padding: 0 1rem;
+    font-size: 1.5rem;
+  }
+
+  .category-publications {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+  }
+
+  .publication-card {
+    display: flex;
+    flex-direction: row;
+    height: auto;
+    padding: -0.2rem;
+    gap: 1rem;
+    border-radius: 5;
+    box-shadow: none;
+    border-bottom: 0px solid var(--border-color);
+    margin: 3px;
+  }
+
+  .publication-card:last-child {
+    border-bottom: none;
+  }
+
+  .publication-card img {
+    height: 150px;
+    width: 100px;
+    height: 115px;
+    border-radius: 8px;
+    object-fit: cover;
+  }
+
+  .publication-info {
+    flex-direction: column;
+    gap: 0.5rem;
+    align-items: flex-start;
+    flex: 1 1;
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0px;
+    margin: -5px;
+  }
+
+  .info-left h3 {
+    font-size: 1rem;
+    font-size: 0.95rem;
+    margin: 0;
+    line-height: 1.3;
+  }
+
+  .price {
+    font-size: 1.1rem;
+    margin-top: 0.5rem;
+    font-size: 1.1rem;
+    margin: 0.3rem 0;
+  }
+
+  .ver-button {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+
+  .publication-meta {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+  }
+}
+
+/* Dark mode adjustments */
+body.dark-mode .publication-card {
+  background: #2c3e50;
+}
+
+body.dark-mode .info-left h3 {
+  color: white;
+}
+
+body.dark-mode .no-publications {
+  color: #ccc;
+}

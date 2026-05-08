@@ -1,0 +1,145 @@
+.floating-business-button {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  background: var(--accent-color);
+  color: white;
+  border: none;
+  border-radius: 50px;
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  z-index: 100;
+}
+
+.floating-business-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
+}
+
+.business-modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.business-modal-header h2 {
+  margin: 0;
+  color: var(--text-primary);
+  font-size: 1.5rem;
+}
+
+.business-modal-content {
+  padding: 1.5rem;
+}
+
+.business-modal-content p {
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.business-modal-content ul {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+  color: var(--text-primary);
+}
+
+.business-modal-content li {
+  margin: 0.5rem 0;
+}
+
+.business-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.business-modal-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.business-modal-group label {
+  color: var(--text-primary);
+  font-weight: 500;
+}
+
+.business-modal-group input,
+.business-modal-group textarea {
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: 0.95rem;
+}
+
+.business-modal-group textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.business-modal-group input[type="file"] {
+  padding: 0.5rem;
+}
+
+.business-modal-fileinfo {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+.business-modal-error {
+  color: var(--error-color);
+  font-size: 0.9rem;
+  margin-top: 0.5rem;
+}
+
+.business-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.business-modal-actions button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.business-modal-actions button[type="submit"] {
+  background: var(--accent-color);
+  color: white;
+}
+
+.business-modal-actions button[type="submit"]:hover {
+  background: var(--accent-color-dark);
+}
+
+@media (max-width: 768px) {
+  .floating-business-button span {
+    display: none;
+  }
+  
+  .floating-business-button {
+    padding: 1rem;
+    border-radius: 50%;
+  }
+  
+  .business-modal-form {
+    gap: 1rem;
+  }
+  
+  .business-modal-group input,
+  .business-modal-group textarea {
+    font-size: 16px; /* Prevents zoom on mobile */
+  }
+}
