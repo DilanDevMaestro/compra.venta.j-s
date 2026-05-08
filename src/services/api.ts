@@ -1,0 +1,729 @@
+import axios, { AxiosHeaders } from 'axios'
+import { config } from '../config/config'
+import storage from './storage'
+
+type PublicationImage = {
+  url: string
+}
+
+type PublicationDto = {
+  _id: string
+  nombre: string
+  precio: number
+  categoria: string
+  subcategoria?: string
+  imagenes?: PublicationImage[]
+  vistas?: number
+  likes?: number
+  createdAt?: string
+}
+
+type RecentResponse = {
+  publications: PublicationDto[]
+  featured: PublicationDto[]
+  personalized?: PublicationDto[]
+  boosted?: PublicationDto[]
+}
+
+type UpdatePublicationInput = {
+  precio?: number | string
+  precioOriginal?: number | string
+  descuento?: number | string
+  subcategoria?: string
+  [key: string]: unknown
+}
+
+type CommentInput = Record<string, unknown>
+
+type LocationCountsResponse = {
+  level: 'country' | 'province' | 'region' | 'city'
+  items: Array<{ name: string; count: number; country?: string; province?: string }>
+}
+
+const authenticatedRequest = axios.create({
+  baseURL: config.API_URL,
+  withCredentials: true
+})
+
+const fetchConfig: RequestInit = {
+  credentials: 'include',
+  headers: {
+    Accept: 'application/json',
+    'Content-Type': 'application/json'
+  }
+}
+
+const getAuthHeaders = () => {
+  const token = storage.getToken()
+  return {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {})
+  }
+}
+
+const renewToken = async () => {
+  const response = await fetch(`${config.API_URL}/auth/refresh-token`, {
+    method: 'POST',
+    credentials: 'include',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+  if (response.ok) {
+    return true
+  }
+  storage.removeToken()
+  storage.removeUser()
+  window.location.href = '/login'
+  throw new Error('No se pudo renovar el token')
+}
+
+authenticatedRequest.interceptors.request.use(
+  (cfg) => {
+    const token = storage.getToken()
+    if (token) {
+      const headers = AxiosHeaders.from(cfg.headers || {})
+      headers.set('Authorization', `Bearer ${token}`)
+      cfg.headers = headers
+    }
+    return cfg
+  },
+  (error) => Promise.reject(error)
+)
+
+authenticatedRequest.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true
+      try {
+        const refreshed = await fetch(`${config.API_URL}/auth/refresh-token`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' }
+        })
+        if (!refreshed.ok) throw new Error('Error renovando token')
+        // Retry the original request; cookies are sent automatically (withCredentials true)
+        return authenticatedRequest(originalRequest)
+      } catch (err) {
+        storage.removeToken()
+        storage.removeUser()
+        window.location.href = '/'
+        return Promise.reject(err)
+      }
+    }
+    return Promise.reject(error)
+  }
+)
+
+const handleResponse = async (response: Response) => {
+  if (!response.ok) {
+    const contentType = response.headers.get('content-type')
+    let error: unknown
+
+    if (contentType && contentType.includes('application/json')) {
+      error = await response.json()
+    } else {
+      error = await response.text()
+    }
+
+    if (response.status === 401) {
+      // Try to renew token via cookie-based refresh
+      try {
+        await renewToken()
+        // Cannot safely retry arbitrary original request here; caller will need to re-run action.
+      } catch {
+        // fallthrough - token renewal failed
+      }
+    }
+
+    throw error
+  }
+
+  return response.json()
+}
+
+const mapPubRow = (pub: PublicationDto) => ({
+  _id: pub._id,
+  nombre: pub.nombre,
+  precio: pub.precio,
+  categoria: pub.categoria,
+  subcategoria: pub.subcategoria,
+  imagenes: pub.imagenes || [],
+  vistas: pub.vistas || 0,
+  likes: pub.likes || 0,
+  createdAt: pub.createdAt
+})
+
+export const publicationsApi = {
+  getRecent: async (opts?: { hours?: number; personalized?: boolean; limit?: number }) => {
+    try {
+      const params = new URLSearchParams()
+      if (opts?.hours) params.set('hours', String(opts.hours))
+      if (opts?.limit) params.set('limit', String(opts.limit))
+      if (opts?.personalized !== false) params.set('personalized', '1')
+      const qs = params.toString()
+      const suffix = qs ? `?${qs}` : ''
+      const response = await fetch(`${config.API_URL}/publications/recent${suffix}`, {
+        credentials: 'include',
+        headers: {
+          Accept: 'application/json',
+          ...getAuthHeaders()
+        }
+      })
+      if (!response.ok) throw new Error('Error fetching publications')
+      const data = (await response.json()) as RecentResponse
+
+      const personalized =
+        data.personalized?.length && Array.isArray(data.personalized)
+          ? data.personalized.map(mapPubRow)
+          : undefined
+
+      const boosted =
+        data.boosted?.length && Array.isArray(data.boosted)
+          ? data.boosted.map(mapPubRow)
+          : undefined
+
+      return {
+        publications: data.publications.map(mapPubRow),
+        featured: data.featured.map((pub: PublicationDto) => ({
+          ...mapPubRow(pub),
+          likes: pub.likes || 0
+        })),
+        personalized,
+        boosted
+      }
+    } catch (error) {
+      console.error('Error fetching publications:', error)
+      return { publications: [], featured: [], personalized: undefined, boosted: undefined }
+    }
+  },
+
+  getByCategory: async (
+    category: string,
+    subcategory?: string,
+    personalized = true,
+    opts?: { skip?: number; limit?: number }
+  ) => {
+    const params = new URLSearchParams()
+    if (subcategory) {
+      params.set('subcategoria', subcategory)
+    }
+    if (personalized) params.set('personalized', '1')
+    if (opts?.skip != null) params.set('skip', String(opts.skip))
+    if (opts?.limit != null) params.set('limit', String(opts.limit))
+    const suffix = params.toString() ? `?${params.toString()}` : '?personalized=1'
+    const response = await fetch(`${config.API_URL}/publications/category/${category}${suffix}`, {
+      ...fetchConfig,
+      headers: {
+        ...(fetchConfig.headers as Record<string, string>),
+        ...getAuthHeaders()
+      }
+    })
+    return handleResponse(response)
+  },
+
+  getSellerPublications: async (userId: string, opts?: { skip?: number; limit?: number }) => {
+    const params = new URLSearchParams()
+    if (opts?.skip != null) params.set('skip', String(opts.skip))
+    if (opts?.limit != null) params.set('limit', String(opts.limit))
+    const q = params.toString() ? `?${params.toString()}` : ''
+    const response = await fetch(`${config.API_URL}/publications/seller/${userId}${q}`, {
+      ...fetchConfig,
+      headers: {
+        ...(fetchConfig.headers as Record<string, string>),
+        ...getAuthHeaders()
+      }
+    })
+    return handleResponse(response) as Promise<{
+      items: PublicationDto[]
+      total: number
+      hasMore: boolean
+    }>
+  },
+
+  getBoosted: async (categorySlug?: string) => {
+    const q = categorySlug ? `?category=${encodeURIComponent(categorySlug)}` : ''
+    const response = await fetch(`${config.API_URL}/publications/boosted${q}`, fetchConfig)
+    return handleResponse(response)
+  },
+
+  getByLocation: async (params: { country?: string; province?: string; city?: string; limit?: number }) => {
+    const search = new URLSearchParams()
+    if (params.country) search.set('country', params.country)
+    if (params.province) search.set('province', params.province)
+    if (params.city) search.set('city', params.city)
+    if (params.limit) search.set('limit', String(params.limit))
+    const suffix = search.toString() ? `?${search.toString()}` : ''
+    const response = await fetch(`${config.API_URL}/publications/location${suffix}`, fetchConfig)
+    return handleResponse(response)
+  },
+
+  getById: async (id: string) => {
+    const response = await fetch(`${config.API_URL}/publications/${id}`, {
+      ...fetchConfig,
+      headers: {
+        ...(fetchConfig.headers as Record<string, string>),
+        ...getAuthHeaders()
+      }
+    })
+    return handleResponse(response)
+  },
+
+  create: async (formData: FormData) => {
+    const response = await fetch(`${config.API_URL}/publications`, {
+      method: 'POST',
+      credentials: 'include',
+      body: formData
+    })
+
+    if (!response.ok) {
+      const errorData = await response.text()
+      throw new Error(errorData)
+    }
+
+    return response.json()
+  },
+
+  getUserPublications: async () => {
+    const response = await fetch(`${config.API_URL}/publications/mis-publicaciones`, {
+      headers: {
+        ...getAuthHeaders()
+      },
+      credentials: 'include'
+    })
+    return handleResponse(response)
+  },
+
+  delete: async (id: string) => {
+      const response = await fetch(`${config.API_URL}/publications/${id}`, {
+      method: 'DELETE',
+      ...fetchConfig,
+      headers: {
+        ...(fetchConfig.headers as Record<string, string>),
+        ...getAuthHeaders()
+      }
+    })
+    return handleResponse(response)
+  },
+
+  update: async (id: string, data: UpdatePublicationInput) => {
+    const formattedData: Record<string, unknown> = { ...data }
+    if (data.precio !== undefined) formattedData.precio = Number(data.precio)
+    if (data.precioOriginal !== undefined) formattedData.precioOriginal = Number(data.precioOriginal)
+    if (data.descuento !== undefined) formattedData.descuento = Number(data.descuento)
+
+    const response = await fetch(`${config.API_URL}/publications/${id}`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(formattedData)
+    })
+    return handleResponse(response)
+  },
+
+  incrementShare: async (id: string) => {
+    const response = await fetch(`${config.API_URL}/publications/${id}/share`, {
+      method: 'POST',
+      ...fetchConfig
+    })
+    return handleResponse(response)
+  },
+
+  incrementWhatsappClick: async (id: string) => {
+    const response = await fetch(`${config.API_URL}/publications/${id}/whatsapp-click`, {
+      method: 'POST',
+      ...fetchConfig
+    })
+    return handleResponse(response)
+  },
+
+  incrementViews: async (id: string) => {
+    const response = await fetch(`${config.API_URL}/publications/${id}/view`, {
+      method: 'POST',
+      ...fetchConfig,
+      headers: {
+        ...(fetchConfig.headers as Record<string, string>),
+        ...getAuthHeaders()
+      }
+    })
+    return handleResponse(response)
+  },
+
+  getComments: async (publicationId: string) => {
+    const response = await fetch(`${config.API_URL}/publications/${publicationId}/comments`, fetchConfig)
+    return handleResponse(response)
+  },
+
+  addComment: async (publicationId: string, commentData: CommentInput) => {
+    const response = await fetch(`${config.API_URL}/publications/${publicationId}/comments`, {
+      method: 'POST',
+      ...fetchConfig,
+      headers: {
+        ...(fetchConfig.headers as Record<string, string>),
+        ...getAuthHeaders()
+      },
+      body: JSON.stringify(commentData)
+    })
+    return handleResponse(response)
+  },
+
+  getLocationCounts: async (level: 'country' | 'province' | 'city' = 'country', limit = 50) => {
+    const params = new URLSearchParams()
+    params.set('level', level)
+    params.set('limit', String(limit))
+    const response = await fetch(`${config.API_URL}/publications/location-counts?${params.toString()}`)
+    return handleResponse(response) as Promise<LocationCountsResponse>
+  },
+
+  getCategoryCounts: async () => {
+    const response = await fetch(`${config.API_URL}/publications/category-counts`, fetchConfig)
+    return handleResponse(response)
+  },
+
+  getDiscounted: async () => {
+    try {
+      const response = await fetch(`${config.API_URL}/publications/discounted`)
+      if (!response.ok) throw new Error('Network response was not ok')
+      return response.json()
+    } catch (error) {
+      console.error('Error fetching discounted publications:', error)
+      return []
+    }
+  },
+
+  search: async (query: string) => {
+    try {
+      const response = await fetch(`${config.API_URL}/publications/search?q=${encodeURIComponent(query)}`)
+      if (!response.ok) throw new Error('Error en la búsqueda')
+      return response.json()
+    } catch (error) {
+      console.error('Error en búsqueda:', error)
+      return []
+    }
+  },
+
+  likePublication: async (id: string, isLiked: boolean) => {
+    const response = await fetch(`${config.API_URL}/publications/${id}/like`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        ...getAuthHeaders(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ liked: !isLiked })
+    })
+
+    if (response.status === 401) {
+      return { unauthorized: true }
+    }
+
+    const data = await response.json()
+    return data
+  }
+}
+
+export const currencyApi = {
+  getQuotes: async () => {
+    const response = await fetch(`${config.API_URL}/currency/quotes`, {
+      ...fetchConfig,
+      headers: {
+        ...(fetchConfig.headers as Record<string, string>)
+      }
+    })
+    return handleResponse(response)
+  }
+}
+
+export const graphQLApi = {
+  query: async (query: string, variables: Record<string, unknown> = {}) => {
+    const response = await fetch(`${config.API_URL}/graphql`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        ...getAuthHeaders(),
+        Accept: 'application/json'
+      },
+      body: JSON.stringify({ query, variables })
+    })
+    return handleResponse(response)
+  }
+}
+
+export const userApi = {
+  getProfile: async () => {
+    const response = await authenticatedRequest.get('/users/profile')
+    const data = response.data
+    if (data && data.id != null && data._id == null) {
+      return { ...data, _id: String(data.id) }
+    }
+    return data
+  },
+
+  updateLocation: async (data: {
+    country: string
+    countryCode?: string
+    province: string
+    city: string
+    postalCode: string
+    areaCode?: string
+  }) => {
+    try {
+      const response = await authenticatedRequest.post('/users/update-location', data, {
+        headers: { 'Content-Type': 'application/json' }
+      })
+
+      if (response.data?.success) {
+        const currentUser = storage.getUser() || {}
+        const updatedUser = {
+          ...currentUser,
+          locationProfile: response.data.locationProfile,
+          locationComplete: true
+        }
+        storage.setUser(updatedUser)
+      }
+
+      return response.data
+    } catch (error: any) {
+      const status = error?.response?.status
+      const payload = error?.response?.data
+      if (status === 409) {
+        if (payload?.locationProfile) {
+          const currentUser = storage.getUser() || {}
+          const updatedUser = {
+            ...currentUser,
+            locationProfile: payload.locationProfile,
+            locationComplete: true
+          }
+          storage.setUser(updatedUser)
+        }
+        return { success: false, message: payload?.message || 'Ubicación ya configurada' }
+      }
+      throw error
+    }
+  },
+
+  updateBusinessProfile: async (formData: FormData) => {
+    const response = await authenticatedRequest.post('/users/update-business-profile', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data'
+      }
+    })
+
+    if (response.data?.success) {
+      const currentUser = storage.getUser() || {}
+      const updatedUser = {
+        ...currentUser,
+        businessProfile: response.data.businessProfile
+      }
+      storage.setUser(updatedUser)
+    }
+
+    return response.data
+  },
+
+  setBusinessProfileActive: async (isActive: boolean) => {
+    const response = await authenticatedRequest.patch('/users/business-profile-active', { isActive })
+    const data = response.data as { success?: boolean; businessProfile?: Record<string, unknown> }
+    if (data?.success && data.businessProfile) {
+      const currentUser = storage.getUser() || {}
+      storage.setUser({
+        ...currentUser,
+        businessProfile: data.businessProfile
+      })
+    }
+    return data
+  },
+
+  claimReferral: async (code: string) => {
+    const response = await authenticatedRequest.post('/users/referral/claim', { code })
+    return response.data as { success?: boolean; message?: string; referral?: unknown }
+  }
+}
+
+export const commerceApi = {
+  createBoostOrder: async (
+    publicationId: string,
+    duration?: { unit: 'day' | 'week' | 'month'; value: number }
+  ) => {
+    const response = await authenticatedRequest.post('/commerce/orders/boost-publication', {
+      publicationId,
+      duration: duration || { unit: 'week', value: 1 }
+    })
+    return response.data as {
+      success?: boolean
+      orderId?: string
+      amount?: number
+      currency?: string
+      checkoutPending?: boolean
+      message?: string
+    }
+  },
+
+  createAdSlotOrder: async (payload: {
+    orderType?: 'banner_slot' | 'category_feature'
+    duration?: { unit: 'day' | 'week' | 'month'; value: number }
+    categoryKey?: string
+    notes?: string
+  }) => {
+    const response = await authenticatedRequest.post('/commerce/orders/ad-slot', payload)
+    return response.data
+  },
+
+  getMyOrders: async () => {
+    const response = await authenticatedRequest.get('/commerce/my-orders')
+    return response.data as { orders?: unknown[] }
+  },
+
+  confirmStub: async (orderId: string) => {
+    const response = await authenticatedRequest.post(`/commerce/orders/${orderId}/confirm-stub`)
+    return response.data
+  }
+}
+
+export const searchApi = {
+  search: async (query: string) => {
+    const response = await fetch(
+      `${config.API_URL}/publications/search?q=${encodeURIComponent(query)}`,
+      fetchConfig
+    )
+    return handleResponse(response)
+  }
+}
+
+export const authApi = {
+  initiateGoogleAuth: () => {
+    try {
+      const ref = sessionStorage.getItem('referralCode')
+      const q = ref ? `?ref=${encodeURIComponent(ref)}` : ''
+      window.location.href = `${config.API_URL}/auth/google${q}`
+    } catch {
+      window.location.href = `${config.API_URL}/auth/google`
+    }
+  },
+
+  verifyAuth: async (token: string) => {
+    const response = await fetch(`${config.API_URL}/auth/verify`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Accept: 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify({ t: token, token })
+    })
+    const data = await response.json()
+    if (response.ok && data.user) {
+      storage.removeToken()
+      storage.setUser(data.user)
+    }
+    return data
+  }
+}
+
+export const adminApi = {
+  getSummary: async () => {
+    const response = await authenticatedRequest.get('/admin/summary')
+    return response.data
+  },
+
+  deletePublicationById: async (id: string) => {
+    const response = await authenticatedRequest.delete(`/admin/publications/${id}`)
+    return response.data
+  },
+
+  grantAdminByEmail: async (email: string) => {
+    const response = await authenticatedRequest.post('/admin/users/grant-admin', { email })
+    return response.data
+  },
+
+  uploadBanner: async (payload: FormData) => {
+    const response = await authenticatedRequest.post('/admin/banner', payload, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    return response.data
+  }
+  ,
+  getBanners: async () => {
+    const response = await authenticatedRequest.get('/admin/banner/list')
+    return response.data
+  },
+  deleteBanner: async (id: string) => {
+    const response = await authenticatedRequest.delete(`/admin/banner/${id}`)
+    return response.data
+  },
+  toggleBannerActive: async (id: string) => {
+    const response = await authenticatedRequest.patch(`/admin/banner/${id}/toggle-active`)
+    return response.data
+  }
+}
+
+export const bannerApi = {
+  getActive: async () => {
+    const response = await fetch(`${config.API_URL}/banner`)
+    return handleResponse(response)
+  }
+  ,
+  getList: async () => {
+    const response = await fetch(`${config.API_URL}/banner/list`)
+    return handleResponse(response)
+  }
+}
+
+export const socialApi = {
+  profileSummary: async (userId: string) => {
+    const response = await fetch(`${config.API_URL}/social/profile/${userId}/summary`, {
+      ...fetchConfig,
+      headers: {
+        ...(fetchConfig.headers as Record<string, string>),
+        ...getAuthHeaders()
+      }
+    })
+    return handleResponse(response) as Promise<{
+      id: string
+      name: string
+      picture: string
+      banner?: string
+      location?: string
+      description?: string
+      socialLinks?: {
+        facebook?: string
+        instagram?: string
+        tiktok?: string
+        website?: string
+      } | null
+      followersCount: number
+      followingCount: number
+      following: boolean
+      isBusiness?: boolean
+    }>
+  },
+  follow: async (userId: string) => {
+    const response = await authenticatedRequest.post(`/social/follow/${userId}`)
+    return response.data as { following: boolean }
+  },
+  unfollow: async (userId: string) => {
+    const response = await authenticatedRequest.delete(`/social/follow/${userId}`)
+    return response.data as { following: boolean }
+  },
+  followStatus: async (userId: string) => {
+    const response = await authenticatedRequest.get(`/social/follow-status/${userId}`)
+    return response.data as {
+      followersCount: number
+      followingCount: number
+      following: boolean
+    }
+  },
+  recordSignal: async (payload: {
+    type: 'view_publication' | 'category_view'
+    publicationId?: string
+    categoryKey?: string
+  }) => {
+    const response = await authenticatedRequest.post('/social/signals', payload)
+    return response.data as { ok?: boolean }
+  }
+}

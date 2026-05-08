@@ -1,0 +1,543 @@
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { categories as fallbackCategories } from '../data/categories'
+import type { Listing } from '../data/listings'
+import { bannerApi, publicationsApi } from '../services/api'
+import { config } from '../config/config'
+import { Header } from '../components/layout/Header'
+import { Hero } from '../components/home/Hero'
+import { MarketMarquee } from '../components/home/MarketMarquee'
+import { CategorySidebar } from '../components/home/CategorySidebar'
+import { CategoryModal } from '../components/home/CategoryModal'
+import { ListingSection } from '../components/home/ListingSection'
+import { LocationTree } from '../components/home/LocationTree'
+import { LocationModal } from '../components/home/LocationModal'
+import { Footer } from '../components/layout/Footer'
+import { categoryToSlug, resolveCategoryKey, resolveCategoryName } from '../utils/categories'
+import { detectLocation } from '../services/locationService'
+import { readHomeFeedCache, writeHomeFeedCache } from '../services/homeFeedCache'
+
+type RawPublication = {
+  _id?: string
+  nombre?: string
+  precio?: number | string
+  categoria?: string
+  subcategoria?: string
+  imagenes?: Array<{ url?: string }>
+  createdAt?: string
+  precioOriginal?: number | string
+  descuento?: number | string
+  activo?: boolean
+  vistas?: number
+  likes?: number | unknown[] | unknown
+}
+
+type LocationItem = { name: string; count: number; country?: string; province?: string }
+// BannerPayload removed — admin banners are fetched as a list and passed to `Hero`
+
+export function HomePage() {
+  const [isDark, setIsDark] = useState<boolean>(() => {
+    try {
+      const stored = localStorage.getItem('theme')
+      if (stored) return stored === 'dark'
+    } catch {
+      // ignore localStorage access errors (e.g., disabled storage)
+    }
+    return window.matchMedia?.('(prefers-color-scheme: dark)')?.matches ?? false
+  })
+
+  const toggleTheme = () => {
+    setIsDark((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem('theme', next ? 'dark' : 'light')
+      } catch {
+        // ignore localStorage write errors (private browsing, etc.)
+      }
+      return next
+    })
+  }
+  const [categories, setCategories] = useState(fallbackCategories)
+  const [featured, setFeatured] = useState<Listing[]>([])
+  const [recent, setRecent] = useState<Listing[]>([])
+  const [timeframe, setTimeframe] = useState<'all' | '12h' | '24h'>('24h')
+  const hydratedFromCache = useRef(false)
+  const initialTimeframeRef = useRef(timeframe)
+  const [forYou, setForYou] = useState<Listing[]>([])
+  const [boosted, setBoosted] = useState<Listing[]>([])
+  const [offers, setOffers] = useState<Listing[]>([])
+  const [showCategories, setShowCategories] = useState(false)
+  const [showLocations, setShowLocations] = useState(false)
+  const [locationCounts, setLocationCounts] = useState<Record<string, LocationItem[]>>({
+    country: [],
+    province: [],
+    city: []
+  })
+  const [locationFilter, setLocationFilter] = useState<{
+    country: string
+    province?: string
+    city?: string
+  } | null>(null)
+  const [adminBanners, setAdminBanners] = useState<Array<{
+    imageUrl: string
+    buttonText?: string
+    buttonUrl?: string
+    buttonPosition?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'
+  }>>([])
+  const navigate = useNavigate()
+
+  const categoryIndex = useMemo(() => {
+    return new Map(fallbackCategories.map((c) => [resolveCategoryKey(c.name), c]))
+  }, [])
+
+  const toListing = useCallback((pub: RawPublication, extra?: Partial<Listing>): Listing => ({
+    id: String(pub._id ?? ''),
+    title: String(pub.nombre ?? ''),
+    price: Number(pub.precio) || 0,
+    location: pub.categoria || 'Argentina',
+    subcategory: pub.subcategoria || undefined,
+    imageUrl:
+      pub.imagenes?.[0]?.url ||
+      'https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1200&auto=format&fit=crop',
+    createdAt: pub.createdAt,
+    ...extra
+  }), [])
+
+  const buildCategoryCounts = useCallback(
+    (list: RawPublication[]) => {
+      const countsByCategory: Record<string, number> = {}
+      list.forEach((pub) => {
+        const key = resolveCategoryKey(String(pub.categoria || ''))
+        if (!key) return
+        countsByCategory[key] = (countsByCategory[key] || 0) + 1
+      })
+
+      const next = fallbackCategories.map((category) => ({
+        ...category,
+        count: countsByCategory[resolveCategoryKey(category.name)] ?? 0
+      }))
+
+      const extras = Object.entries(countsByCategory)
+        .filter(([name]) => !categoryIndex.has(name))
+        .map(([name, count], index) => ({
+          id: next.length + index + 1,
+          name: resolveCategoryName(name),
+          count,
+          icon: '🧩',
+          subcategories: []
+        }))
+
+      setCategories([...next, ...extras])
+    },
+    [categoryIndex]
+  )
+
+  const loadHomeData = useCallback(async () => {
+    const recentOpts =
+      timeframe === 'all'
+        ? { hours: 720, limit: 40, personalized: true as const }
+        : timeframe === '12h'
+          ? { hours: 12, limit: 24, personalized: true as const }
+          : { hours: 24, limit: 28, personalized: true as const }
+
+    const applyLocationCounts = (
+      countryCounts: { items?: LocationItem[] } | null,
+      provinceCounts: { items?: LocationItem[] } | null,
+      cityCounts: { items?: LocationItem[] } | null
+    ) => {
+      if (countryCounts?.items) {
+        setLocationCounts((prev) => ({ ...prev, country: countryCounts.items! }))
+      }
+      if (provinceCounts?.items) {
+        setLocationCounts((prev) => ({ ...prev, province: provinceCounts.items! }))
+      }
+      if (cityCounts?.items) {
+        setLocationCounts((prev) => ({ ...prev, city: cityCounts.items! }))
+      }
+    }
+
+    try {
+      await Promise.all([
+        (async () => {
+          try {
+            const [countryCounts, provinceCounts, cityCounts] = await Promise.all([
+              publicationsApi.getLocationCounts('country', 200),
+              publicationsApi.getLocationCounts('province', 200),
+              publicationsApi.getLocationCounts('city', 200)
+            ])
+            applyLocationCounts(countryCounts, provinceCounts, cityCounts)
+          } catch (err) {
+            console.error('Error location counts:', err)
+          }
+        })(),
+        (async () => {
+          try {
+            if (locationFilter) {
+              const data = await publicationsApi.getByLocation({
+                country: locationFilter.country,
+                province: locationFilter.province,
+                city: locationFilter.city,
+                limit: 150
+              })
+              const list: RawPublication[] = Array.isArray(data) ? data : (data as { items?: RawPublication[] })?.items || []
+
+              const sortedByCreated = [...list].sort((a, b) =>
+                String(b.createdAt || '').localeCompare(String(a.createdAt || ''))
+              )
+              const recentItems = sortedByCreated.slice(0, 10).map((pub) => toListing(pub))
+              const featuredItems = [...list]
+                .sort((a, b) => Number(b.vistas || 0) - Number(a.vistas || 0))
+                .slice(0, 3)
+                .map((pub) => toListing(pub, { featured: true }))
+              const offersItems = list
+                .filter((pub) => Number(pub.descuento || 0) > 0)
+                .slice(0, 10)
+                .map((pub) => toListing(pub, { isOffer: true }))
+
+              setRecent(recentItems)
+              setFeatured(featuredItems)
+              setOffers(offersItems)
+              buildCategoryCounts(list)
+              setForYou([])
+              try {
+                const boostRaw = await publicationsApi.getBoosted()
+                const boostList = Array.isArray(boostRaw) ? boostRaw : []
+                setBoosted(boostList.map((pub: RawPublication) => toListing(pub)))
+              } catch {
+                setBoosted([])
+              }
+              return
+            }
+
+            const [recentData, discounted, counts] = await Promise.all([
+              publicationsApi.getRecent(recentOpts),
+              publicationsApi.getDiscounted(),
+              publicationsApi.getCategoryCounts()
+            ])
+
+            let nextFeatured: Listing[] = []
+            let nextRecent: Listing[] = []
+            let nextForYou: Listing[] = []
+            let nextBoosted: Listing[] = []
+            let nextOffers: Listing[] = []
+            let nextCategories = fallbackCategories
+
+            if (recentData) {
+              if (recentData?.publications?.length) {
+                nextRecent = recentData.publications.map((pub: RawPublication) => toListing(pub))
+              }
+              setRecent(nextRecent)
+
+              if (recentData?.featured?.length) {
+                nextFeatured = recentData.featured.map((pub: RawPublication) => toListing(pub, { featured: true }))
+              }
+              setFeatured(nextFeatured)
+
+              if (recentData?.personalized?.length) {
+                nextForYou = recentData.personalized.map((pub: RawPublication) => toListing(pub))
+              }
+              setForYou(nextForYou)
+
+              if (recentData?.boosted?.length) {
+                nextBoosted = recentData.boosted.map((pub: RawPublication) => toListing(pub))
+              } else {
+                try {
+                  const boostRaw = await publicationsApi.getBoosted()
+                  const boostList = Array.isArray(boostRaw) ? boostRaw : []
+                  nextBoosted = boostList.map((pub: RawPublication) => toListing(pub))
+                } catch {
+                  nextBoosted = []
+                }
+              }
+              setBoosted(nextBoosted)
+            }
+
+            if (Array.isArray(discounted) && discounted.length) {
+              nextOffers = discounted.map((pub: RawPublication) => toListing(pub, { isOffer: true }))
+              setOffers(nextOffers)
+            } else {
+              setOffers([])
+            }
+
+            if (counts && typeof counts === 'object') {
+              const normalized = Object.fromEntries(
+                Object.entries(counts).map(([name, count]) => [resolveCategoryKey(name), Number(count) || 0])
+              )
+
+              const next = fallbackCategories.map((category) => ({
+                ...category,
+                count: normalized[resolveCategoryKey(category.name)] ?? category.count
+              }))
+
+              const extras = Object.entries(normalized)
+                .filter(([name]) => !categoryIndex.has(name))
+                .map(([name, count], index) => ({
+                  id: next.length + index + 1,
+                  name: resolveCategoryName(name),
+                  count,
+                  icon: '🧩',
+                  subcategories: []
+                }))
+
+              nextCategories = [...next, ...extras]
+              setCategories(nextCategories)
+            }
+
+            writeHomeFeedCache({
+              featured: nextFeatured,
+              recent: nextRecent,
+              forYou: nextForYou,
+              boosted: nextBoosted,
+              offers: nextOffers,
+              categories: nextCategories,
+              timeframe: String(timeframe)
+            })
+          } catch (error) {
+            console.error('Error loading feed:', error)
+          }
+        })()
+      ])
+    } catch (error) {
+      console.error('Error loading home data:', error)
+    }
+  }, [buildCategoryCounts, categoryIndex, locationFilter, timeframe, toListing])
+
+  // Hidrata el home con el último snapshot (mismo rango de fechas) para evitar pantalla vacía al volver atrás.
+  useLayoutEffect(() => {
+    if (hydratedFromCache.current) return
+    const snap = readHomeFeedCache(initialTimeframeRef.current)
+    if (!snap) return
+    hydratedFromCache.current = true
+    setFeatured(snap.featured as Listing[])
+    setRecent(snap.recent as Listing[])
+    setForYou(snap.forYou as Listing[])
+    setBoosted(snap.boosted as Listing[])
+    setOffers(snap.offers as Listing[])
+    setCategories(snap.categories as typeof fallbackCategories)
+  }, [])
+
+  useEffect(() => {
+    void (async () => {
+      // cache location in localStorage for future visits
+      void detectLocation()
+      await loadHomeData()
+    })()
+  }, [loadHomeData])
+
+  useEffect(() => {
+    const loadAdminBanners = async () => {
+      try {
+        const data = await bannerApi.getList()
+        const items = data?.items || []
+        if (Array.isArray(items) && items.length) {
+          setAdminBanners(items)
+        } else {
+          setAdminBanners([])
+        }
+      } catch (error) {
+        console.error('Error loading admin banners:', error)
+        setAdminBanners([])
+      }
+    }
+
+    loadAdminBanners()
+    const onUpdate = () => {
+      void loadAdminBanners()
+    }
+    window.addEventListener('banners:updated', onUpdate)
+    return () => {
+      window.removeEventListener('banners:updated', onUpdate)
+    }
+  }, [])
+
+  useEffect(() => {
+    const eventsUrl = `${config.API_URL}/events`
+    const source = new EventSource(eventsUrl)
+
+    const handleChange = () => {
+      loadHomeData()
+    }
+
+    source.addEventListener('publications:changed', handleChange)
+
+    source.addEventListener('error', () => {
+      source.close()
+    })
+
+    return () => source.close()
+  }, [loadHomeData])
+
+  const handleCategorySelect = (categoryName: string) => {
+    navigate(`/categoria/${categoryToSlug(categoryName)}`)
+  }
+
+  const [filteredRecent, setFilteredRecent] = useState<Listing[]>([])
+
+  useEffect(() => {
+    if (timeframe === 'all') {
+      // keep async to avoid sync setState-in-effect lint
+      Promise.resolve().then(() => setFilteredRecent(recent))
+      return
+    }
+    const now = Date.now()
+    const hours = timeframe === '12h' ? 12 : 24
+    Promise.resolve().then(() =>
+      setFilteredRecent(
+        recent.filter((r) => {
+          if (!r.createdAt) return false
+          const created = new Date(r.createdAt).getTime()
+          return now - created <= hours * 60 * 60 * 1000
+        })
+      )
+    )
+  }, [recent, timeframe])
+
+  return (
+    <div className={isDark ? 'dark' : ''}>
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
+        <Header isDark={isDark} onToggleTheme={toggleTheme} />
+        <main className="mx-auto w-full max-w-5xl px-4 pb-12 flex-1">
+          <Hero adminBanners={adminBanners} />
+          {/* Admin banners are now merged into the Hero carousel; no separate banner container here */}
+          <MarketMarquee />
+          <div className="mt-4 flex gap-3">
+            <div className="flex flex-col">
+              <CategorySidebar
+                categories={categories}
+                onSelect={(category) => handleCategorySelect(category.name)}
+              />
+              <div className="mt-3 hidden lg:block">
+                <aside className="w-40 shrink-0">
+                  <LocationTree
+                    title="Países"
+                    countries={locationCounts.country || []}
+                    provinces={locationCounts.province || []}
+                    cities={locationCounts.city || []}
+                    maxHeight="460px"
+                    onSelect={(payload) => {
+                      setLocationFilter(payload)
+                    }}
+                  />
+                </aside>
+              </div>
+            </div>
+            <div className="min-w-0 flex-1">
+              <div className="mb-4 flex flex-wrap gap-2 lg:hidden">
+                <button
+                  onClick={() => setShowCategories(true)}
+                  className="inline-flex w-auto rounded-xl border bg-surface px-3 py-2 text-left text-[12px] font-semibold uppercase tracking-widest text-muted dark:border-white/10"
+                  style={isDark ? undefined : { borderColor: 'rgba(0,0,0,0.18)' }}
+                >
+                  Ver categorías
+                </button>
+                <button
+                  onClick={() => setShowLocations(true)}
+                  className="inline-flex w-auto rounded-xl border bg-surface px-3 py-2 text-left text-[12px] font-semibold uppercase tracking-widest text-muted dark:border-white/10"
+                  style={isDark ? undefined : { borderColor: 'rgba(0,0,0,0.18)' }}
+                >
+                  Ver región
+                </button>
+              </div>
+              <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex flex-col">
+                  <h3 className="text-sm font-semibold">Compra y vende sin vueltas</h3>
+                  {locationFilter ? (
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-[11px] text-muted">
+                      <span className="rounded-full border border-card/40 px-2 py-0.5">
+                        {locationFilter.country}
+                        {locationFilter.province ? ` · ${locationFilter.province}` : ''}
+                        {locationFilter.city ? ` · ${locationFilter.city}` : ''}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setLocationFilter(null)}
+                        className="rounded-full border border-card/40 px-2 py-0.5 text-[11px] text-muted hover:text-foreground"
+                      >
+                        Limpiar filtro
+                      </button>
+                    </div>
+                  ) : null}
+                </div>
+                <div className="flex items-center gap-1 overflow-x-auto flex-nowrap">
+                  <button
+                    type="button"
+                    onClick={() => setTimeframe('all')}
+                    className={`whitespace-nowrap text-[11px] px-2 py-0.5 rounded-full border ${timeframe === 'all' ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted border-card/40'}`}
+                    aria-pressed={timeframe === 'all'}
+                  >
+                    Todas
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTimeframe('12h')}
+                    className={`whitespace-nowrap text-[11px] px-2 py-0.5 rounded-full border ${timeframe === '12h' ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted border-card/40'}`}
+                    aria-pressed={timeframe === '12h'}
+                  >
+                    Últimas 12h
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTimeframe('24h')}
+                    className={`whitespace-nowrap text-[11px] px-2 py-0.5 rounded-full border ${timeframe === '24h' ? 'bg-primary/10 text-primary border-primary/30' : 'text-muted border-card/40'}`}
+                    aria-pressed={timeframe === '24h'}
+                  >
+                    Últimas 24h
+                  </button>
+                </div>
+              </div>
+              <div className="lg:hidden" />
+
+              {forYou.length > 0 ? (
+                <ListingSection title="Para vos" items={forYou} layout="scroll" scrollChunkSize={28} />
+              ) : null}
+
+              {boosted.length > 0 ? (
+                <ListingSection title="Impulsadas" items={boosted} layout="scroll" scrollChunkSize={28} />
+              ) : null}
+
+              <ListingSection
+                title="Recientes"
+                items={filteredRecent}
+                layout="scroll"
+                scrollChunkSize={28}
+                viewMoreLink="/recientes"
+              />
+              <ListingSection title="Destacados" items={featured} layout="scroll" scrollChunkSize={24} viewMoreLink="/destacados" />
+              <ListingSection
+                title="Ofertas"
+                items={offers}
+                highlight="offer"
+                layout="scroll"
+                scrollChunkSize={28}
+                viewMoreLink="/ofertas"
+              />
+            </div>
+          </div>
+        </main>
+        <Footer />
+      </div>
+      <CategoryModal
+        open={showCategories}
+        categories={categories}
+        onClose={() => setShowCategories(false)}
+        onSelect={(category) => {
+          setShowCategories(false)
+          handleCategorySelect(category.name)
+        }}
+      />
+      <LocationModal
+        open={showLocations}
+        countries={locationCounts.country || []}
+        provinces={locationCounts.province || []}
+        cities={locationCounts.city || []}
+        onClose={() => setShowLocations(false)}
+        onSelect={(payload) => {
+          setShowLocations(false)
+          setLocationFilter(payload)
+        }}
+      />
+    </div>
+  )
+}
+
+export default HomePage
